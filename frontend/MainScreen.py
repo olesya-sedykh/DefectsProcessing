@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QDesktopWidget, QFrame, QLineEdit, 
     QComboBox, QTableWidget, QTableWidgetItem, 
     QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
-    QFileDialog, QGraphicsView, QGraphicsScene, QDialog
+    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication
 )
 from PyQt5.QtGui import (
     QPalette, QColor, QFont, QIntValidator, 
@@ -125,18 +125,14 @@ class MainScreen(QMainWindow):
         self.methods_table.setRowCount(4)
         self.methods_table.setColumnCount(2)
         self.methods_table.setHorizontalHeaderLabels(["Дефект", "Метод обработки"])
-        self.methods_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # растяжение столбцоы по ширине таблицы
+        self.methods_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # растяжение столбцов по ширине таблицы
         self.methods_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.methods_table.horizontalHeader().setStretchLastSection(True)
+        self.methods_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.methods_table.verticalHeader().setVisible(False)
+        # self.methods_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.methods_table.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
-        
-        # заполнение строк таблицы дефектами
-        defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
-        for row, defect in enumerate(defects):
-            item = QTableWidgetItem(defect) # создание ячейки
-            item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
-            self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
         
         # методы для автоматической обработки
         self.automatic_methods = [
@@ -169,15 +165,27 @@ class MainScreen(QMainWindow):
             "Медианный фильтр": {"Размер ядра": 3}
         }
         
+        print("Before update")
         self.update_methods_table()
+        print("After update")
+
         left_layout.addWidget(self.methods_table)
+
+        # кнопка для обработки дефектов
+        self.process_button = QPushButton("Исправить дефекты")
+        self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.process_button.setFont(font)
+        # self.process_button.clicked.connect(self.processing)
+        left_layout.addWidget(self.process_button)
 
         # распределение размеров элементов по высоте для левой стороны
         left_layout.setStretch(0, 10)
-        left_layout.setStretch(1, 45)  # 30% для file_widget (первый добавленный элемент)
+        left_layout.setStretch(1, 35)  # 30% для file_widget (первый добавленный элемент)
         left_layout.setStretch(2, 10)   # 5% для defects_processing_type
         left_layout.setStretch(3, 10)   # 5% для process_type
         left_layout.setStretch(4, 25)  # 60% для methods_table
+        left_layout.setStretch(5, 10)
 
         main_layout.addWidget(left_widget, stretch=50)
 
@@ -364,13 +372,18 @@ class MainScreen(QMainWindow):
         """
         processing_type = self.process_type.currentText()
         print('processing_type', processing_type)
+
+        # полное очищение таблицы перед новым заполнением
+        self.methods_table.clearContents()
+
+        # заполнение строк таблицы дефектами
+        defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
+        for row, defect in enumerate(defects):
+            item = QTableWidgetItem(defect) # создание ячейки
+            item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
+            self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
         
         for row in range(self.methods_table.rowCount()):
-            self.methods_table.setItem(row, 1, None)  # Удаляем QTableWidgetItem если был
-            widget = self.methods_table.cellWidget(row, 1)
-            if widget:
-                widget.deleteLater()
-            
             # в случае автоматической обработки просто показываем названия методов
             if self.process_type.currentIndex() == 0:
                 method_item = QTableWidgetItem(self.automatic_methods[row])
@@ -386,6 +399,69 @@ class MainScreen(QMainWindow):
                 self.methods_table.setCellWidget(row, 1, combo)
         
         self.methods_table.resizeRowsToContents()
+
+    # def update_methods_table(self):
+    #     """
+    #     Обновляет заполнение таблицы методов.
+    #     """
+    #     # if getattr(self, "_updating_table", False):
+    #     #     return
+            
+    #     # self._updating_table = True
+    #     # self.process_type.blockSignals(True)
+        
+    #     try:
+    #         print(f"Обновление таблицы, режим: {self.process_type.currentText()}")
+            
+    #         # Сохраняем текущие выбранные методы
+    #         current_methods = {}
+    #         for row in range(self.methods_table.rowCount()):
+    #             if self.methods_table.item(row, 0):  # Проверяем наличие элемента
+    #                 defect = self.methods_table.item(row, 0).text()
+    #                 if self.process_type.currentIndex() == 1:  # Для ручного режима
+    #                     combo = self.methods_table.cellWidget(row, 1)
+    #                     if combo and isinstance(combo, QComboBox):
+    #                         current_methods[defect] = combo.currentText()
+            
+    #         # Полностью очищаем и перестраиваем таблицу
+    #         self.methods_table.clearContents()
+            
+    #         defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
+    #         for row, defect in enumerate(defects):
+    #             # Устанавливаем дефект (первый столбец)
+    #             item = QTableWidgetItem(defect)
+    #             item.setTextAlignment(Qt.AlignCenter)
+    #             self.methods_table.setItem(row, 0, item)
+                
+    #             # Заполняем методы (второй столбец)
+    #             if self.process_type.currentIndex() == 0:  # Автоматический режим
+    #                 method_item = QTableWidgetItem(self.automatic_methods[row])
+    #                 method_item.setTextAlignment(Qt.AlignCenter)
+    #                 self.methods_table.setItem(row, 1, method_item)
+    #             else:  # Ручной режим
+    #                 combo = QComboBox()
+    #                 combo.addItems(self.manual_options[defect])
+    #                 combo.setCurrentText(current_methods.get(defect, ""))
+    #                 combo.setMinimumHeight(30)
+    #                 self.methods_table.setCellWidget(row, 1, combo)
+            
+    #         self.methods_table.resizeRowsToContents()
+    #         print("Таблица успешно обновлена")
+            
+    #     except Exception as e:
+    #         print(f"Ошибка при обновлении таблицы: {str(e)}")
+    #         import traceback
+    #         traceback.print_exc()
+            
+    #         # Восстанавливаем автоматический режим при ошибке
+    #         self.process_type.blockSignals(True)
+    #         self.process_type.setCurrentIndex(0)
+    #         self.process_type.blockSignals(False)
+    #         self.update_methods_table()
+            
+    #     finally:
+    #         self.process_type.blockSignals(False)
+    #         self._updating_table = False
 
     def show_parameters(self, row, editable):
         """Shows parameters dialog for the selected method"""
