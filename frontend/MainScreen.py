@@ -65,53 +65,35 @@ class MainScreen(QMainWindow):
         left_layout.addWidget(self.file_widget, stretch=40)
         left_layout.addStretch(60)
 
-        # # контейнер для кнопки загрузки
-        # # load_button_container = QWidget()
-        # # load_button_layout = QHBoxLayout(load_button_container)
-        # # load_button_layout.addStretch()
-        # # кнопка загрузки
-        # self.load_button = QPushButton('Загрузить\nфайл')
-        # self.load_button.setFixedSize(130, 150)
-        # self.load_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
-        # self.load_button.setFont(font)
-        # self.load_button.clicked.connect(self.load_file)
-        # # load_button_layout.addWidget(self.load_button)
-        # # load_button_layout.addStretch()
-        # self.file_layout.addWidget(self.load_button)
-
-        # Контейнер для кнопки загрузки
+        # контейнер для кнопки загрузки
         load_button_container = QWidget()
         load_button_layout = QVBoxLayout(load_button_container)
 
-        # Растяжение перед кнопкой (прижимает кнопку к нижнему краю)
+        # растяжение перед кнопкой (прижимает кнопку к нижнему краю)
         load_button_layout.addStretch()
 
-        # Горизонтальный layout для центрирования кнопки
+        # горизонтальный layout для центрирования кнопки
         button_horizontal_layout = QHBoxLayout()
-        button_horizontal_layout.addStretch()  # Растяжение слева
 
-        # Кнопка загрузки
+        # пространство слева от кнопки
+        button_horizontal_layout.addStretch()
+
+        # кнопка загрузки
         self.load_button = QPushButton('Загрузить\nфайл')
         self.load_button.setFixedSize(130, 150)
         self.load_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.load_button.setFont(font)
         self.load_button.clicked.connect(self.load_file)
-        button_horizontal_layout.addWidget(self.load_button)  # Добавляем кнопку
+        button_horizontal_layout.addWidget(self.load_button)
 
-        button_horizontal_layout.addStretch()  # Растяжение справа
+        # пространство справа от кнопки
+        button_horizontal_layout.addStretch()
 
-        # Добавляем горизонтальный layout в вертикальный
+        # добавляем горизонтальный layout в вертикальный
         load_button_layout.addLayout(button_horizontal_layout)
 
-        # Добавляем контейнер с кнопкой в file_layout
+        # добавляем контейнер с кнопкой в file_layout
         self.file_layout.addWidget(load_button_container)
-
-        # кнопка просмотра
-        # self.view_button = QPushButton('Просмотр')
-        # self.view_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
-        # self.view_button.clicked.connect(self.view_content)
-        # # self.view_button.hide()
-        # self.file_layout.addWidget(self.view_button)
 
         # выпадающий список для выбора способа исправления дефектов
         self.defects_processing_type = QComboBox()
@@ -128,22 +110,26 @@ class MainScreen(QMainWindow):
         self.process_type.setFixedHeight(40)
         self.process_type.setFont(font)
         left_layout.addWidget(self.process_type)
+        self.process_type.currentIndexChanged.connect(self.update_methods_table)
 
+        # таблица с методами исправления дефектов
         self.methods_table = QTableWidget()
         self.methods_table.setRowCount(4)
         self.methods_table.setColumnCount(2)
         self.methods_table.setHorizontalHeaderLabels(["Дефект", "Метод обработки"])
-        self.methods_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.methods_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # растяжение столбцоы по ширине таблицы
         self.methods_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.methods_table.verticalHeader().setVisible(False)
-        self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
         
+        # заполнение строк таблицы дефектами
         defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
         for row, defect in enumerate(defects):
-            item = QTableWidgetItem(defect)
-            self.methods_table.setItem(row, 0, item)
+            item = QTableWidgetItem(defect) # создание ячейки
+            item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
+            self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
         
-        # Initialize methods for automatic processing
+        # методы для автоматической обработки
         self.automatic_methods = [
             "Фильтр Лапласа",
             "Алгоритм CLAHE",
@@ -151,7 +137,7 @@ class MainScreen(QMainWindow):
             "Фильтр среднего значения"
         ]
         
-        # Options for manual processing
+        # методы для ручной обработки
         self.manual_options = {
             "Размытие": ["Фильтр Лапласа", "Фильтр Гаусса", "Фильтр Собеля"],
             "Низкая контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание", "Гамма-коррекция"],
@@ -159,7 +145,7 @@ class MainScreen(QMainWindow):
             "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса"]
         }
         
-        # Default parameters for each method
+        # параметры по умолчанию для методов
         self.method_parameters = {
             "Фильтр Лапласа": {"Размер ядра": 3, "Масштаб": 1.0, "Дельта": 0},
             "Алгоритм CLAHE": {"Лимит контраста": 2.0, "Размер тайла": 8},
@@ -254,37 +240,6 @@ class MainScreen(QMainWindow):
                 self.display_video()
                 # self.load_button.hide()
                 # self.view_button.show()
-
-    # def display_image(self):
-    #     # очищаем file_widget от предыдущих виджетов
-    #     for i in reversed(range(self.file_layout.count())):
-    #         self.file_layout.itemAt(i).widget().setParent(None)
-
-    #     # создаем QLabel для отображения изображения
-    #     self.image_label = QLabel()
-    #     self.image_label.setAlignment(Qt.AlignCenter)
-    #     self.image_label.setStyleSheet("background-color: darkgray;")
-
-    #     # загружаем изображение
-    #     pixmap = QPixmap(self.file_path)
-
-    #     # масштабируем изображение так, чтобы оно заполнило file_widget с сохранением пропорций
-    #     scaled_pixmap = pixmap.scaled(
-    #         self.file_widget.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
-    #     )
-
-    #     # обрезаем изображение по центру
-    #     x = (scaled_pixmap.width() - self.file_widget.width()) // 2
-    #     y = (scaled_pixmap.height() - self.file_widget.height()) // 2
-    #     cropped_pixmap = scaled_pixmap.copy(
-    #         x, y, self.file_widget.width(), self.file_widget.height()
-    #     )
-
-    #     # устанавливаем обрезанное изображение в QLabel
-    #     self.image_label.setPixmap(cropped_pixmap)
-
-    #     # добавляем QLabel в file_widget
-    #     self.file_layout.addWidget(self.image_label)
 
     def display_image(self):
         # Очищаем file_widget от предыдущих виджетов
@@ -388,61 +343,31 @@ class MainScreen(QMainWindow):
 
 
     def update_methods_table(self):
-        """Updates the methods table based on processing type (automatic/manual)"""
+        """
+        Обновляет заполнение таблицы.
+        """
         processing_type = self.process_type.currentText()
         print('processing_type', processing_type)
         
         for row in range(self.methods_table.rowCount()):
-            # Remove any existing widget in the second column
-            if self.methods_table.cellWidget(row, 1):
-                self.methods_table.cellWidget(row, 1).setParent(None)
+            self.methods_table.setItem(row, 1, None)  # Удаляем QTableWidgetItem если был
+            widget = self.methods_table.cellWidget(row, 1)
+            if widget:
+                widget.deleteLater()
             
+            # в случае автоматической обработки просто показываем названия методов
             if self.process_type.currentIndex() == 0:
-                # For automatic processing, just show the method name
                 method_item = QTableWidgetItem(self.automatic_methods[row])
+                method_item.setTextAlignment(Qt.AlignCenter)
                 self.methods_table.setItem(row, 1, method_item)
-                
-                # Add settings button
-                settings_btn = QPushButton()
-                settings_btn.setIcon(QIcon.fromTheme("preferences-system"))
-                settings_btn.setIconSize(QSize(16, 16))
-                settings_btn.setFixedSize(24, 24)
-                settings_btn.setStyleSheet("border: none;")
-                settings_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, False))
-                
-                # Create container widget for the button
-                container = QWidget()
-                layout = QHBoxLayout(container)
-                layout.addWidget(QLabel(self.automatic_methods[row]))
-                layout.addStretch()
-                layout.addWidget(settings_btn)
-                layout.setContentsMargins(0, 0, 0, 0)
-                
-                self.methods_table.setCellWidget(row, 1, container)
+            
+            # в случае ручной обработки для каждого дефекта можно выбрать метод
             else:
-                print('manual')
-                # For manual processing, add a combo box with options
                 defect = self.methods_table.item(row, 0).text()
                 combo = QComboBox()
                 combo.addItems(self.manual_options[defect])
                 combo.setCurrentIndex(0)
-                
-                # Add settings button
-                settings_btn = QPushButton()
-                settings_btn.setIcon(QIcon.fromTheme("preferences-system"))
-                settings_btn.setIconSize(QSize(16, 16))
-                settings_btn.setFixedSize(24, 24)
-                settings_btn.setStyleSheet("border: none;")
-                settings_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, True))
-                
-                # Create container widget
-                container = QWidget()
-                layout = QHBoxLayout(container)
-                layout.addWidget(combo)
-                layout.addWidget(settings_btn)
-                layout.setContentsMargins(0, 0, 0, 0)
-                
-                self.methods_table.setCellWidget(row, 1, container)
+                self.methods_table.setCellWidget(row, 1, combo)
         
         self.methods_table.resizeRowsToContents()
 
