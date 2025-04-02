@@ -54,16 +54,20 @@ class MainScreen(QMainWindow):
         self.file_type.addItem("Обработка изображения")
         self.file_type.addItem("Обработка датасета")
         self.file_type.addItem("Обработка видео")
-        self.file_type.setFixedHeight(40)
+        # self.file_type.setFixedHeight(40)
+        self.file_type.setMinimumHeight(40)
+        self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(font)
         left_layout.addWidget(self.file_type)
 
         # область для загрузки и отображения файлов
         self.file_widget = QWidget()
         self.file_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
+        # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.file_layout = QVBoxLayout(self.file_widget)
-        left_layout.addWidget(self.file_widget, stretch=40)
-        left_layout.addStretch(60)
+        left_layout.addWidget(self.file_widget)
+        # left_layout.addStretch(60)
 
         # контейнер для кнопки загрузки
         load_button_container = QWidget()
@@ -99,7 +103,9 @@ class MainScreen(QMainWindow):
         self.defects_processing_type = QComboBox()
         self.defects_processing_type.addItem("Исправить все дефекты")
         self.defects_processing_type.addItem("Исправить основной дефект")
-        self.defects_processing_type.setFixedHeight(40)
+        # self.defects_processing_type.setFixedHeight(40)
+        self.defects_processing_type.setMinimumHeight(40)
+        self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.defects_processing_type.setFont(font)
         left_layout.addWidget(self.defects_processing_type)
         
@@ -107,7 +113,9 @@ class MainScreen(QMainWindow):
         self.process_type = QComboBox()
         self.process_type.addItem("Автоматическая обработка")
         self.process_type.addItem("Ручная обработка")
-        self.process_type.setFixedHeight(40)
+        # self.process_type.setFixedHeight(40)
+        self.process_type.setMinimumHeight(40)
+        self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_type.setFont(font)
         left_layout.addWidget(self.process_type)
         self.process_type.currentIndexChanged.connect(self.update_methods_table)
@@ -120,6 +128,7 @@ class MainScreen(QMainWindow):
         self.methods_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # растяжение столбцоы по ширине таблицы
         self.methods_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.methods_table.verticalHeader().setVisible(False)
+        self.methods_table.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
         
         # заполнение строк таблицы дефектами
@@ -162,6 +171,13 @@ class MainScreen(QMainWindow):
         
         self.update_methods_table()
         left_layout.addWidget(self.methods_table)
+
+        # распределение размеров элементов по высоте для левой стороны
+        left_layout.setStretch(0, 10)
+        left_layout.setStretch(1, 45)  # 30% для file_widget (первый добавленный элемент)
+        left_layout.setStretch(2, 10)   # 5% для defects_processing_type
+        left_layout.setStretch(3, 10)   # 5% для process_type
+        left_layout.setStretch(4, 25)  # 60% для methods_table
 
         main_layout.addWidget(left_widget, stretch=50)
 
