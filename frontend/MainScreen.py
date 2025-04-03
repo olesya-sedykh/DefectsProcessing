@@ -4,12 +4,12 @@ from PyQt5.QtWidgets import (
     QDesktopWidget, QFrame, QLineEdit, 
     QComboBox, QTableWidget, QTableWidgetItem, 
     QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
-    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication
+    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget
 )
 from PyQt5.QtGui import (
     QPalette, QColor, QFont, QIntValidator, 
     QDoubleValidator, QRegExpValidator, QRegularExpressionValidator,
-    QPixmap, QImage, QIcon, QTransform
+    QPixmap, QImage, QIcon, QTransform, QPainter
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRegExp, QRegularExpression, QSize, QRectF
 
@@ -31,8 +31,8 @@ class MainScreen(QMainWindow):
         self.center()
 
         # шрифт
-        font = QFont()
-        font.setPointSize(10)
+        self.font = QFont()
+        self.font.setPointSize(10)
 
         # главный виджет
         central_widget = QWidget()
@@ -57,7 +57,7 @@ class MainScreen(QMainWindow):
         # self.file_type.setFixedHeight(40)
         self.file_type.setMinimumHeight(40)
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.file_type.setFont(font)
+        self.file_type.setFont(self.font)
         left_layout.addWidget(self.file_type)
 
         # область для загрузки и отображения файлов
@@ -69,35 +69,8 @@ class MainScreen(QMainWindow):
         left_layout.addWidget(self.file_widget)
         # left_layout.addStretch(60)
 
-        # контейнер для кнопки загрузки
-        load_button_container = QWidget()
-        load_button_layout = QVBoxLayout(load_button_container)
-
-        # растяжение перед кнопкой (прижимает кнопку к нижнему краю)
-        load_button_layout.addStretch()
-
-        # горизонтальный layout для центрирования кнопки
-        button_horizontal_layout = QHBoxLayout()
-
-        # пространство слева от кнопки
-        button_horizontal_layout.addStretch()
-
         # кнопка загрузки
-        self.load_button = QPushButton('Загрузить\nфайл')
-        self.load_button.setFixedSize(130, 150)
-        self.load_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
-        self.load_button.setFont(font)
-        self.load_button.clicked.connect(self.load_file)
-        button_horizontal_layout.addWidget(self.load_button)
-
-        # пространство справа от кнопки
-        button_horizontal_layout.addStretch()
-
-        # добавляем горизонтальный layout в вертикальный
-        load_button_layout.addLayout(button_horizontal_layout)
-
-        # добавляем контейнер с кнопкой в file_layout
-        self.file_layout.addWidget(load_button_container)
+        self.create_load_button()
 
         # выпадающий список для выбора способа исправления дефектов
         self.defects_processing_type = QComboBox()
@@ -106,7 +79,7 @@ class MainScreen(QMainWindow):
         # self.defects_processing_type.setFixedHeight(40)
         self.defects_processing_type.setMinimumHeight(40)
         self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.defects_processing_type.setFont(font)
+        self.defects_processing_type.setFont(self.font)
         left_layout.addWidget(self.defects_processing_type)
         
         # выпадающий список для выбора способа обработки
@@ -116,7 +89,7 @@ class MainScreen(QMainWindow):
         # self.process_type.setFixedHeight(40)
         self.process_type.setMinimumHeight(40)
         self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.process_type.setFont(font)
+        self.process_type.setFont(self.font)
         left_layout.addWidget(self.process_type)
         self.process_type.currentIndexChanged.connect(self.update_methods_table)
 
@@ -133,6 +106,20 @@ class MainScreen(QMainWindow):
         # self.methods_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.methods_table.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
+        self.methods_table.setStyleSheet("""
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                border: 1px solid #d0d0d0;
+                padding: 5px;
+                font-weight: bold;
+            }
+            QTableWidget {
+                gridline-color: #d0d0d0;
+            }
+        """)
+        self.methods_table.setShowGrid(True)
+        self.methods_table.setGridStyle(Qt.SolidLine)
+        self.methods_table.resizeRowsToContents()
         
         # методы для автоматической обработки
         self.automatic_methods = [
@@ -175,7 +162,7 @@ class MainScreen(QMainWindow):
         self.process_button = QPushButton("Исправить дефекты")
         self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
-        self.process_button.setFont(font)
+        self.process_button.setFont(self.font)
         # self.process_button.clicked.connect(self.processing)
         left_layout.addWidget(self.process_button)
 
@@ -266,96 +253,184 @@ class MainScreen(QMainWindow):
                 # self.view_button.show()
 
     def display_image(self):
-        # Очищаем file_widget от предыдущих виджетов
-        for i in reversed(range(self.file_layout.count())):
-            widget = self.file_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
-
-        # Создаем контейнер с абсолютным позиционированием
-        self.image_container = QWidget()
-        self.image_container.setLayout(QVBoxLayout())
-        self.image_container.layout().setContentsMargins(0, 0, 0, 0)
-        
-        # Создаем QLabel для изображения
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        
-        # Загружаем изображение
-        self.original_pixmap = QPixmap(self.file_path)
+        """
+        Отображает изображение.
+        """
+        # загружаем изображение
+        self.original_pixmap = QPixmap(self.file_path) # self.original_pixmap - это непосредственно изображение
         if self.original_pixmap.isNull():
-            print("Не удалось загрузить изображение")
+            error_widget = QLabel()
+            error_widget.setText("Ошибка: не удалось загрузить изображение")
+            error_widget.setStyleSheet("color: red;")
+            error_widget.setAlignment(Qt.AlignCenter)
+            self.file_layout.addWidget(error_widget)
             return
         
-        # Первоначальное отображение центральной части
-        self.update_cropped_image()
+        # удаление предыдущих виджетов, чтобы они не накапливались
+        self.delete_files_widgets()
+
+        # контейнер для изображения
+        self.image_container = QWidget() # "рамка" (область) для изоражения
+        self.image_container_layout = QVBoxLayout(self.image_container) # правила размещения внутри области (по вертикали)
+        # self.image_container.setLayout(QVBoxLayout()) # правила размещения внутри области (по вертикали)
+        self.image_container.layout().setContentsMargins(0, 0, 0, 0) # содержимое должно занимать все пространство
         
-        # Создаем кнопку просмотра
-        self.view_button = QPushButton()
-        self.view_button.setIcon(QIcon.fromTheme("view-refresh"))
-        self.view_button.setIconSize(QSize(24, 24))
-        self.view_button.setFixedSize(32, 32)
+        # QLabel для изображения
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored) # игнорировать рекомендуемые размеры
+        self.image_label.setStyleSheet("background-color: #f0f0f0;")
+        
+        # создаем overlay виджет для кнопок
+        self.overlay_widget = QWidget(self.image_label) # создаем виджет поверх виджета для картинки
+        self.overlay_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False) # именно этот, а не родительский, виджет будет реагировать на мышь
+        overlay_layout = QHBoxLayout(self.overlay_widget) # расположение по горизонтали
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        self.overlay_widget.setStyleSheet("background: transparent; border: none;") # делаем прозрачным фон виджета для кнопок
+        # overlay_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        
+        # кнопка просмотра (глаз)
+        self.view_button = QPushButton("👁")
+        self.view_button.setFixedSize(30, 30)
         self.view_button.setStyleSheet("""
             QPushButton {
-                background-color: rgba(255, 255, 255, 150);
-                border-radius: 16px;
+                background-color: white;
+                border-radius: 15px;
                 border: 1px solid gray;
+                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: rgba(255, 255, 255, 200);
+                background-color: #f0f0f0;
             }
         """)
         self.view_button.clicked.connect(self.view_content)
         
-        # Размещаем кнопку в правом нижнем углу
-        self.button_container = QWidget(self.image_container)
-        self.button_container.setAttribute(Qt.WA_TransparentForMouseEvents)
-        button_layout = QHBoxLayout(self.button_container)
-        button_layout.setContentsMargins(0, 0, 10, 10)
-        button_layout.addStretch()
-        button_layout.addWidget(self.view_button)
+        # кнопка закрытия (крестик)
+        self.close_button = QPushButton("×")
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                border-radius: 15px;
+                border: 1px solid gray;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        self.close_button.clicked.connect(self.clear_image)
         
-        # Добавляем элементы в контейнер
-        self.image_container.layout().addWidget(self.image_label)
+        # добавляем кнопки в виджет
+        overlay_layout.addWidget(self.view_button)
+        overlay_layout.addWidget(self.close_button)
+        
+        # устанавливаем размер виджета для кнопок (подгоняет размер под содержимое)
+        self.overlay_widget.adjustSize()
+        
+        # добавляем элементы в контейнер для изображения
+        self.image_container_layout.addWidget(self.image_label)
         self.file_layout.addWidget(self.image_container)
         
-        # Устанавливаем обработчик изменения размера (только один раз!)
-        if not hasattr(self, '_size_connected'):
-            self.image_container.installEventFilter(self)
-            self._size_connected = True
-
-    def eventFilter(self, obj, event):
-        """Обработчик изменения размера без рекурсии"""
-        if event.type() == event.Resize and obj == self.image_container:
-            self.update_cropped_image()
-        return super().eventFilter(obj, event)
+        # устанавливаем обработчик изменения размера изображения
+        self.image_label.resizeEvent = lambda e: self.update_image_display()
 
     def update_cropped_image(self):
-        """Обновляет отображаемую центральную часть изображения"""
-        if hasattr(self, 'original_pixmap'):
-            # Получаем текущие размеры области отображения
-            width = self.image_container.width()
-            height = self.image_container.height()
+        """
+        Обновляет отображаемую часть изображения (среднюю часть).
+        """
+        if hasattr(self, 'original_pixmap'): # если в принципе изображение есть
+            # получаем текущие размеры виджета для изображения
+            width = self.image_label.width()
+            height = self.image_label.height()
             
-            # Вычисляем область для вырезания (центральная часть)
+            # размеры самого изображения
             img_width = self.original_pixmap.width()
             img_height = self.original_pixmap.height()
             
-            # Координаты для вырезания центральной части
+            # координаты для вырезания центральной части
             crop_x = max(0, (img_width - width) // 2)
             crop_y = max(0, (img_height - height) // 2)
             crop_width = min(width, img_width)
             crop_height = min(height, img_height)
             
-            # Вырезаем и масштабируем
-            cropped = self.original_pixmap.copy(crop_x, crop_y, crop_width, crop_height)
+            # вырезаем и масштабируем
+            cropped = self.original_pixmap.copy(crop_x, crop_y, crop_width, crop_height) # создает вырезанное изображение, принимает координаты левого верхнего угла и длину/ширину
             scaled = cropped.scaled(
-                width, height, 
-                Qt.IgnoreAspectRatio, 
-                Qt.SmoothTransformation
+                width, height, # необходимые размеры
+                Qt.IgnoreAspectRatio, # растягивает по заданным размерам
+                Qt.SmoothTransformation # сглаживание
             )
             self.image_label.setPixmap(scaled)
+
+    def update_buttons_position(self):
+        """
+        Обновляет позицию кнопок в правом верхнем углу.
+        """
+        if hasattr(self, 'overlay_widget'):
+            img_width = self.image_label.width()
+            self.overlay_widget.move(img_width - 75, 10)  # 75 = 30+30+15 отступ
+
+    def update_image_display(self):
+        """
+        Обработчик изменения размера изображения (или окна).
+        """
+        # обрезаем изображение для отображения
+        self.update_cropped_image()
+        # обновляем позицию кнопок
+        self.update_buttons_position()
+
+    def create_load_button(self):
+        # контейнер для кнопки загрузки
+        self.load_button_container = QWidget()
+        load_button_layout = QVBoxLayout(self.load_button_container)
+
+        # растяжение перед кнопкой (прижимает кнопку к нижнему краю)
+        load_button_layout.addStretch()
+
+        # горизонтальный layout для центрирования кнопки
+        button_horizontal_layout = QHBoxLayout()
+
+        # пространство слева от кнопки
+        button_horizontal_layout.addStretch()
+
+        # кнопка загрузки
+        self.load_button = QPushButton('Загрузить\nфайл')
+        self.load_button.setFixedSize(130, 150)
+        self.load_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.load_button.setFont(self.font)
+        self.load_button.clicked.connect(self.load_file)
+        button_horizontal_layout.addWidget(self.load_button)
+
+        # пространство справа от кнопки
+        button_horizontal_layout.addStretch()
+
+        # добавляем горизонтальный layout в вертикальный
+        load_button_layout.addLayout(button_horizontal_layout)
+
+        # добавляем контейнер с кнопкой в file_layout
+        self.file_layout.addWidget(self.load_button_container)
+    
+    def delete_files_widgets(self):
+        """
+        Удаляет виджеты из области отображения файлов.
+        """
+        # удаление предыдущих виджетов, чтобы они не накапливались
+        for i in reversed(range(self.file_layout.count())):
+            widget = self.file_layout.itemAt(i).widget()
+            if widget: 
+                widget.deleteLater()
+    
+    def clear_image(self):
+        """
+        Удаляет изображение из области по кнопке закрытия.
+        """
+        if hasattr(self, 'overlay_widget'):
+            self.delete_files_widgets()
+
+        # опять создаем контейнер для кнопки загрузки и саму кнопку
+        self.create_load_button()
 
     def view_content(self):
         """
@@ -366,102 +441,120 @@ class MainScreen(QMainWindow):
             self.preview_window.show()  # Показываем окно
 
 
+    # def update_methods_table(self):
+    #     """
+    #     Обновляет заполнение таблицы.
+    #     """
+    #     processing_type = self.process_type.currentText()
+    #     print('processing_type', processing_type)
+
+    #     # полное очищение таблицы перед новым заполнением
+    #     self.methods_table.clearContents()
+
+    #     # заполнение строк таблицы дефектами
+    #     defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
+    #     for row, defect in enumerate(defects):
+    #         item = QTableWidgetItem(defect) # создание ячейки
+    #         item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
+    #         font = item.font()
+    #         font.setBold(True)  # делаем текст жирным
+    #         item.setFont(font)
+    #         self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
+        
+    #     for row in range(self.methods_table.rowCount()):
+    #         # в случае автоматической обработки просто показываем названия методов
+    #         if self.process_type.currentIndex() == 0:
+    #             method_item = QTableWidgetItem(self.automatic_methods[row])
+    #             method_item.setTextAlignment(Qt.AlignCenter)
+    #             self.methods_table.setItem(row, 1, method_item)
+            
+    #         # в случае ручной обработки для каждого дефекта можно выбрать метод
+    #         else:
+    #             defect = self.methods_table.item(row, 0).text()
+    #             combo = QComboBox()
+    #             combo.addItems(self.manual_options[defect])
+    #             combo.setCurrentIndex(0)
+    #             self.methods_table.setCellWidget(row, 1, combo)
+        
+    #     self.methods_table.resizeRowsToContents()
+
     def update_methods_table(self):
         """
-        Обновляет заполнение таблицы.
+        Обновляет таблицу методов с кнопками параметров для каждого метода
         """
-        processing_type = self.process_type.currentText()
-        print('processing_type', processing_type)
-
-        # полное очищение таблицы перед новым заполнением
+        print('Режим обработки:', self.process_type.currentText())
+        
+        # Полная очистка таблицы
         self.methods_table.clearContents()
-
-        # заполнение строк таблицы дефектами
+        
+        # Стиль для кнопок шестерёнок
+        gear_style = """
+            QPushButton {
+                border: none;
+                background: transparent;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: #e0e0e0;
+                border-radius: 2px;
+            }
+        """
+        
+        # Заполняем таблицу
         defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
         for row, defect in enumerate(defects):
-            item = QTableWidgetItem(defect) # создание ячейки
-            item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
-            self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
-        
-        for row in range(self.methods_table.rowCount()):
-            # в случае автоматической обработки просто показываем названия методов
-            if self.process_type.currentIndex() == 0:
-                method_item = QTableWidgetItem(self.automatic_methods[row])
-                method_item.setTextAlignment(Qt.AlignCenter)
-                self.methods_table.setItem(row, 1, method_item)
+            # Ячейка с дефектом (первый столбец)
+            item = QTableWidgetItem(defect)
+            item.setTextAlignment(Qt.AlignCenter)
+            font = item.font()
+            font.setBold(True)
+            item.setFont(font)
+            self.methods_table.setItem(row, 0, item)
             
-            # в случае ручной обработки для каждого дефекта можно выбрать метод
-            else:
-                defect = self.methods_table.item(row, 0).text()
+            # Создаем контейнер для второго столбца
+            container = QWidget()
+            layout = QHBoxLayout(container)
+            layout.setContentsMargins(5, 0, 5, 0)
+            layout.setSpacing(5)
+            
+            if self.process_type.currentIndex() == 0:  # Автоматический режим
+                # Метод обработки
+                method_label = QLabel(self.automatic_methods[row])
+                method_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(method_label, stretch=1)
+                
+                # Кнопка шестерёнки (только просмотр)
+                gear_btn = QPushButton()
+                gear_btn.setText("⚙")
+                gear_btn.setFont(QFont("Arial", 10))
+                gear_btn.setFixedSize(24, 24)
+                gear_btn.setStyleSheet(gear_style)
+                gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, False))
+                layout.addWidget(gear_btn)
+                
+            else:  # Ручной режим
+                # Выпадающий список методов
                 combo = QComboBox()
                 combo.addItems(self.manual_options[defect])
                 combo.setCurrentIndex(0)
-                self.methods_table.setCellWidget(row, 1, combo)
-        
-        self.methods_table.resizeRowsToContents()
-
-    # def update_methods_table(self):
-    #     """
-    #     Обновляет заполнение таблицы методов.
-    #     """
-    #     # if getattr(self, "_updating_table", False):
-    #     #     return
-            
-    #     # self._updating_table = True
-    #     # self.process_type.blockSignals(True)
-        
-    #     try:
-    #         print(f"Обновление таблицы, режим: {self.process_type.currentText()}")
-            
-    #         # Сохраняем текущие выбранные методы
-    #         current_methods = {}
-    #         for row in range(self.methods_table.rowCount()):
-    #             if self.methods_table.item(row, 0):  # Проверяем наличие элемента
-    #                 defect = self.methods_table.item(row, 0).text()
-    #                 if self.process_type.currentIndex() == 1:  # Для ручного режима
-    #                     combo = self.methods_table.cellWidget(row, 1)
-    #                     if combo and isinstance(combo, QComboBox):
-    #                         current_methods[defect] = combo.currentText()
-            
-    #         # Полностью очищаем и перестраиваем таблицу
-    #         self.methods_table.clearContents()
-            
-    #         defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
-    #         for row, defect in enumerate(defects):
-    #             # Устанавливаем дефект (первый столбец)
-    #             item = QTableWidgetItem(defect)
-    #             item.setTextAlignment(Qt.AlignCenter)
-    #             self.methods_table.setItem(row, 0, item)
+                combo.setStyleSheet("QComboBox { padding: 2px; }")
+                layout.addWidget(combo, stretch=1)
                 
-    #             # Заполняем методы (второй столбец)
-    #             if self.process_type.currentIndex() == 0:  # Автоматический режим
-    #                 method_item = QTableWidgetItem(self.automatic_methods[row])
-    #                 method_item.setTextAlignment(Qt.AlignCenter)
-    #                 self.methods_table.setItem(row, 1, method_item)
-    #             else:  # Ручной режим
-    #                 combo = QComboBox()
-    #                 combo.addItems(self.manual_options[defect])
-    #                 combo.setCurrentText(current_methods.get(defect, ""))
-    #                 combo.setMinimumHeight(30)
-    #                 self.methods_table.setCellWidget(row, 1, combo)
+                # Кнопка шестерёнки (редактирование)
+                gear_btn = QPushButton()
+                gear_btn.setText("⚙")
+                gear_btn.setFont(QFont("Arial", 10))
+                gear_btn.setFixedSize(24, 24)
+                gear_btn.setStyleSheet(gear_style)
+                gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, True))
+                layout.addWidget(gear_btn)
             
-    #         self.methods_table.resizeRowsToContents()
-    #         print("Таблица успешно обновлена")
-            
-    #     except Exception as e:
-    #         print(f"Ошибка при обновлении таблицы: {str(e)}")
-    #         import traceback
-    #         traceback.print_exc()
-            
-    #         # Восстанавливаем автоматический режим при ошибке
-    #         self.process_type.blockSignals(True)
-    #         self.process_type.setCurrentIndex(0)
-    #         self.process_type.blockSignals(False)
-    #         self.update_methods_table()
-            
-    #     finally:
-    #         self.process_type.blockSignals(False)
-    #         self._updating_table = False
+            # Устанавливаем контейнер в таблицу
+            self.methods_table.setCellWidget(row, 1, container)
+        
+        # Настройки внешнего вида таблицы
+        self.methods_table.resizeRowsToContents()
+        self.methods_table.setMinimumHeight(160)  # Минимальная высота для 4 строк
 
     def show_parameters(self, row, editable):
         """Shows parameters dialog for the selected method"""
