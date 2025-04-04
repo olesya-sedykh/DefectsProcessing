@@ -11,7 +11,15 @@ from PyQt5.QtGui import (
     QDoubleValidator, QRegExpValidator, QRegularExpressionValidator,
     QPixmap, QImage, QIcon, QTransform, QPainter
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRegExp, QRegularExpression, QSize, QRectF
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRegExp, QRegularExpression, QSize, QRectF, QUrl
+
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtMultimediaWidgets import QVideoWidget
+
+import os
+import cv2
+
+os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
 from PreviewWindow import PreviewWindow
 from ParameterDialog import ParameterDialog
@@ -252,6 +260,10 @@ class MainScreen(QMainWindow):
                 # self.load_button.hide()
                 # self.view_button.show()
 
+    # =========================================================================
+    # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ КАРТИНКИ
+    # =========================================================================
+    
     def display_image(self):
         """
         Отображает изображение.
@@ -437,8 +449,188 @@ class MainScreen(QMainWindow):
         Открывает окно просмотра с полным изображением.
         """
         if hasattr(self, 'file_path') and self.file_path:
-            self.preview_window = PreviewWindow(self.file_path)  # Создаем окно просмотра
-            self.preview_window.show()  # Показываем окно
+            self.preview_window = PreviewWindow(self.file_path)
+            self.preview_window.show()
+
+    # =========================================================================
+    # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ВИДЕО
+    # =========================================================================
+
+    def display_video(self):
+        """
+        Отображает видео в маленьком окошке с использованием OpenCV.
+        """
+        # Проверяем существование файла
+        if not os.path.exists(self.file_path):
+            error_widget = QLabel()
+            error_widget.setText("Ошибка: файл не найден")
+            error_widget.setStyleSheet("color: red;")
+            error_widget.setAlignment(Qt.AlignCenter)
+            self.file_layout.addWidget(error_widget)
+            return
+        
+        # Удаление предыдущих виджетов
+        self.delete_files_widgets()
+
+        # Контейнер для видео
+        self.video_container = QWidget()
+        self.video_container_layout = QVBoxLayout(self.video_container)
+        self.video_container_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Виджет для отображения видео (теперь это QLabel)
+        self.video_label = QLabel()
+        self.video_label.setAlignment(Qt.AlignCenter)
+        self.video_label.setStyleSheet("background-color: #f0f0f0;")
+        self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Инициализация OpenCV VideoCapture
+        self.cap = cv2.VideoCapture(self.file_path)
+        if not self.cap.isOpened():
+            error_widget = QLabel()
+            error_widget.setText("Ошибка: не удалось открыть видео")
+            error_widget.setStyleSheet("color: red;")
+            error_widget.setAlignment(Qt.AlignCenter)
+            self.file_layout.addWidget(error_widget)
+            return
+
+        # Таймер для обновления кадров
+        self.video_timer = QTimer()
+        self.video_timer.timeout.connect(self.update_frame)
+        self.is_playing = False
+
+        # Overlay виджет для кнопок
+        self.overlay_widget = QWidget(self.video_label)
+        self.overlay_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        overlay_layout = QHBoxLayout(self.overlay_widget)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        self.overlay_widget.setStyleSheet("background: transparent; border: none;")
+        
+        # Кнопка просмотра
+        self.view_button = QPushButton("👁")
+        self.view_button.setFixedSize(30, 30)
+        self.view_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                border-radius: 15px;
+                border: 1px solid gray;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        self.view_button.clicked.connect(self.view_content)
+        
+        # Кнопка закрытия
+        self.close_button = QPushButton("×")
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                border-radius: 15px;
+                border: 1px solid gray;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        self.close_button.clicked.connect(self.clear_video)
+        
+        # Центральная кнопка воспроизведения
+        self.play_button = QPushButton("▶")
+        self.play_button.setFixedSize(60, 60)
+        self.play_button.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 150);
+                border-radius: 30px;
+                border: none;
+                font-size: 24px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 200);
+            }
+        """)
+        self.play_button.clicked.connect(self.toggle_play_video)
+        
+        # Добавляем кнопки в overlay
+        overlay_layout.addWidget(self.view_button)
+        overlay_layout.addWidget(self.close_button)
+        
+        # Центральный layout для кнопки play
+        self.center_layout = QHBoxLayout()
+        self.center_layout.addStretch()
+        self.center_layout.addWidget(self.play_button)
+        self.center_layout.addStretch()
+        
+        # Добавляем элементы в контейнер
+        self.video_container_layout.addWidget(self.video_label)
+        self.video_container_layout.addLayout(self.center_layout)
+        self.file_layout.addWidget(self.video_container)
+        
+        # Устанавливаем обработчик изменения размера
+        self.video_label.resizeEvent = lambda e: self.update_buttons_position()
+        
+        # Обновляем позиции элементов
+        self.update_buttons_position()
+        
+        # Начинаем воспроизведение
+        self.toggle_play_video()
+
+    def update_frame(self):
+        """Обновляет текущий кадр видео"""
+        ret, frame = self.cap.read()
+        if ret:
+            # Конвертируем кадр из BGR (OpenCV) в RGB (Qt)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = frame.shape
+            bytes_per_line = ch * w
+            q_img = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(q_img)
+            
+            # Масштабируем изображение под размер виджета
+            self.video_label.setPixmap(pixmap.scaled(
+                self.video_label.size(), 
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            ))
+        else:
+            # Если видео закончилось, возвращаемся в начало
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+    def toggle_play_video(self):
+        """Переключает воспроизведение видео"""
+        if self.is_playing:
+            self.video_timer.stop()
+            self.play_button.setText("▶")
+        else:
+            fps = self.cap.get(cv2.CAP_PROP_FPS)
+            self.video_timer.start(int(1000 / fps))  # Обновляем с частотой кадров видео
+            self.play_button.setText("❚❚")
+        self.is_playing = not self.is_playing
+
+    def update_buttons_position(self):
+        """Обновляет позицию кнопок управления"""
+        if hasattr(self, 'overlay_widget') and hasattr(self, 'video_label'):
+            label_width = self.video_label.width()
+            self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
+            
+            # Центрируем кнопку play
+            if hasattr(self, 'play_button'):
+                self.play_button.move(
+                    self.video_label.width() // 2 - 30,
+                    self.video_label.height() // 2 - 30
+                )
+
+    def clear_video(self):
+        """Очищает видео и освобождает ресурсы"""
+        if hasattr(self, 'video_timer'):
+            self.video_timer.stop()
+        if hasattr(self, 'cap'):
+            self.cap.release()
+        self.delete_files_widgets()
+        self.create_load_button()
 
 
     # def update_methods_table(self):
