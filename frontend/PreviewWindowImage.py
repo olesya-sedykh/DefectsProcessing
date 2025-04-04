@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 
-class PreviewWindow(QWidget):
+class PreviewWindowImage(QWidget):
     def __init__(self, image_path):
         super().__init__()
         self.setWindowTitle("Просмотр изображения")

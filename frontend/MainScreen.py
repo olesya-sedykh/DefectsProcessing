@@ -21,7 +21,8 @@ import cv2
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
-from PreviewWindow import PreviewWindow
+from frontend.PreviewWindowImage import PreviewWindowImage
+from frontend.PreviewWindowVideo import PreviewWindowVideo
 from ParameterDialog import ParameterDialog
 
 class MainScreen(QMainWindow):
@@ -295,10 +296,7 @@ class MainScreen(QMainWindow):
         Создает окружение для кнопок и сами кнопки закрытия и просмотра.
         """
         # создаем overlay виджет для кнопок
-        if type == 'image':
-            self.overlay_widget = QWidget(self.show_label) # создаем виджет поверх виджета для картинки
-        elif type == 'video':
-            self.overlay_widget = QWidget(self.show_label) # создаем виджет поверх виджета для видео
+        self.overlay_widget = QWidget(self.show_label) # создаем виджет поверх виджета для картинки или видео
         self.overlay_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False) # именно этот, а не родительский, виджет будет реагировать на мышь
         overlay_layout = QHBoxLayout(self.overlay_widget) # расположение по горизонтали
         overlay_layout.setContentsMargins(0, 0, 0, 0)
@@ -319,7 +317,10 @@ class MainScreen(QMainWindow):
                 background-color: #f0f0f0;
             }
         """)
-        self.view_button.clicked.connect(self.view_content)
+        if type == 'image':
+            self.view_button.clicked.connect(self.view_content_image)
+        elif type == 'video':
+            self.view_button.clicked.connect(self.view_content_video)
         
         # кнопка закрытия (крестик)
         self.close_button = QPushButton("×")
@@ -357,8 +358,17 @@ class MainScreen(QMainWindow):
     
     def clear(self):
         """
-        Удаляет изображение из области по кнопке закрытия.
+        Удаляет отображаемый файл из области по кнопке закрытия.
         """
+        # останавливаем таймер, если он существует
+        if hasattr(self, 'video_timer') and self.video_timer:
+            self.video_timer.stop()
+        
+        # освобождаем ресурсы VideoCapture, если есть
+        if hasattr(self, 'cap') and self.cap:
+            self.cap.release()
+
+        # удаляем виджеты из облаасти отображения файлов
         if hasattr(self, 'overlay_widget'):
             self.delete_files_widgets()
 
@@ -384,80 +394,15 @@ class MainScreen(QMainWindow):
         self.show_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored) # игнорировать рекомендуемые размеры
         self.show_label.setStyleSheet("background-color: #f0f0f0;")
 
-    def update_image_buttons_position(self):
-        """
-        Обновляет позиции кнопок управления (служебных кнопок).
-        """
-        if hasattr(self, 'overlay_widget'):
-            label_width = self.show_label.width()
-            self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
-
-    def update_video_buttons_position(self):
-        """
-        Обновляет позиции кнопок управления (служебных кнопок).
-        """
-        if hasattr(self, 'overlay_widget'):
-            label_width = self.show_label.width()
-            self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
-            
-            # для видео еще кнопка play
-            if hasattr(self, 'play_button'):
-                self.play_button.move(
-                    self.show_label.width() // 2 - 30,
-                    self.show_label.height() // 2 - 30
-                )
-
-    # =========================================================================
-    # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ КАРТИНКИ
-    # =========================================================================
-    
-    def display_image(self):
-        """
-        Отображает изображение.
-        """
-        # загружаем изображение
-        original_pixmap = QPixmap(self.file_path) # original_pixmap - это непосредственно изображение
-        if original_pixmap.isNull():
-            error_widget = QLabel()
-            error_widget.setText("Ошибка: не удалось загрузить изображение")
-            error_widget.setStyleSheet("color: red;")
-            error_widget.setAlignment(Qt.AlignCenter)
-            self.file_layout.addWidget(error_widget)
-            return
-        
-        # # удаление предыдущих виджетов, чтобы они не накапливались
-        # self.delete_files_widgets()
-
-        # # контейнер для изображения
-        # self.show_container = QWidget() # "рамка" (область) для изоражения
-        # self.show_container_layout = QVBoxLayout(self.image_container) # правила размещения внутри области (по вертикали)
-        # # self.image_container.setLayout(QVBoxLayout()) # правила размещения внутри области (по вертикали)
-        # self.show_container.layout().setContentsMargins(0, 0, 0, 0) # содержимое должно занимать все пространство
-        
-        # # QLabel для изображения
-        # self.show_label = QLabel()
-        # self.show_label.setAlignment(Qt.AlignCenter)
-        # self.show_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored) # игнорировать рекомендуемые размеры
-        # self.show_label.setStyleSheet("background-color: #f0f0f0;")
-
-        self.create_show_elements()
-
-        # создаем кнопки закрытия и просмотра
-        self.create_service_buttons('image')
-        
-        # добавляем элементы в контейнер для изображения
+        # добавляем элемент показа в контейнер
         self.show_container_layout.addWidget(self.show_label)
+        # добавляем контейнер в лайаут для отображения файла
         self.file_layout.addWidget(self.show_container)
-        
-        # устанавливаем обработчик изменения размера изображения
-        self.show_label.resizeEvent = lambda e: self.update_image_display(original_pixmap)
 
     def update_cropped_image(self, pixmap):
         """
-        Обновляет отображаемую часть изображения (среднюю часть).
-        """
-        # if hasattr(self, 'original_pixmap'): # если в принципе изображение есть
-        
+        Обновляет отображаемую часть изображения мли кадра (среднюю часть).
+        """        
         # получаем текущие размеры виджета для изображения
         width = self.show_label.width()
         height = self.show_label.height()
@@ -481,6 +426,56 @@ class MainScreen(QMainWindow):
         )
         self.show_label.setPixmap(scaled)
 
+    # def update_image_buttons_position(self):
+    #     """
+    #     Обновляет позиции кнопок управления (служебных кнопок).
+    #     """
+    #     if hasattr(self, 'overlay_widget'):
+    #         label_width = self.show_label.width()
+    #         self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
+
+    def update_buttons_position(self):
+        """
+        Обновляет позиции кнопок управления (служебных кнопок).
+        """
+        if hasattr(self, 'overlay_widget'):
+            label_width = self.show_label.width()
+            self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
+            
+            # для видео еще кнопка play
+            # if hasattr(self, 'play_button'):
+            #     self.play_button.move(
+            #         self.show_label.width() // 2 - 30,
+            #         self.show_label.height() // 2 - 30
+            #     )
+
+    # =========================================================================
+    # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ КАРТИНКИ
+    # =========================================================================
+    
+    def display_image(self):
+        """
+        Отображает изображение.
+        """
+        # загружаем изображение
+        original_pixmap = QPixmap(self.file_path) # original_pixmap - это непосредственно изображение
+        if original_pixmap.isNull():
+            error_widget = QLabel()
+            error_widget.setText("Ошибка: не удалось загрузить изображение")
+            error_widget.setStyleSheet("color: red;")
+            error_widget.setAlignment(Qt.AlignCenter)
+            self.file_layout.addWidget(error_widget)
+            return
+
+        # создаем элементы показа картинки
+        self.create_show_elements()
+
+        # создаем кнопки закрытия и просмотра
+        self.create_service_buttons('image')
+        
+        # устанавливаем обработчик изменения размера изображения
+        self.show_label.resizeEvent = lambda e: self.update_image_display(original_pixmap)
+
     def update_image_display(self, pixmap):
         """
         Обработчик изменения размера изображения (или окна).
@@ -488,14 +483,14 @@ class MainScreen(QMainWindow):
         # обрезаем изображение для отображения
         self.update_cropped_image(pixmap)
         # обновляем позицию кнопок
-        self.update_image_buttons_position()
+        self.update_buttons_position()
 
-    def view_content(self):
+    def view_content_image(self):
         """
         Открывает окно просмотра с полным изображением.
         """
         if hasattr(self, 'file_path') and self.file_path:
-            self.preview_window = PreviewWindow(self.file_path)
+            self.preview_window = PreviewWindowImage(self.file_path)
             self.preview_window.show()
 
     # =========================================================================
@@ -524,30 +519,17 @@ class MainScreen(QMainWindow):
             error_widget.setAlignment(Qt.AlignCenter)
             self.file_layout.addWidget(error_widget)
             return
-        
-        # # удаление предыдущих виджетов
-        # self.delete_files_widgets()
 
-        # # контейнер для видео
-        # self.video_container = QWidget()
-        # self.video_container_layout = QVBoxLayout(self.video_container)
-        # self.video_container_layout.setContentsMargins(0, 0, 0, 0)
-
-        # # виджет для отображения видео (QLabel)
-        # self.video_label = QLabel()
-        # self.video_label.setAlignment(Qt.AlignCenter)
-        # self.video_label.setStyleSheet("background-color: #f0f0f0;")
-        # self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
+        # создаем элементы показа видео
         self.create_show_elements()
+
+        # создаем кнопки закрытия и просмотра
+        self.create_service_buttons('video')
 
         # таймер для обновления кадров
         self.video_timer = QTimer()
         self.video_timer.timeout.connect(self.update_frame)
         self.is_playing = False
-
-        # создаем кнопки закрытия и просмотра
-        self.create_service_buttons('video')
         
         # центральная кнопка воспроизведения
         self.play_button = QPushButton("▶", self.show_label)
@@ -563,7 +545,6 @@ class MainScreen(QMainWindow):
                 background-color: rgba(255, 255, 255, 200);
             }
         """)
-        # self.play_button.hide()
         self.play_button.clicked.connect(self.toggle_play_video)
 
         # обработчики событий мыши
@@ -571,25 +552,30 @@ class MainScreen(QMainWindow):
         self.show_label.enterEvent = self.show_play_button
         self.show_label.leaveEvent = self.hide_play_button
         
-        # центральный layout для кнопки play
-        # self.center_layout = QHBoxLayout()
-        # self.center_layout.addStretch()
-        # self.center_layout.addWidget(self.play_button)
-        # self.center_layout.addStretch()
-        
-        # добавляем элементы в контейнер
-        self.show_container_layout.addWidget(self.show_label)
-        # self.video_container_layout.addLayout(self.center_layout)
-
-        # добавляем контейнер в лайаут для отображения файла
-        self.file_layout.addWidget(self.show_container)
-        
         # устанавливаем обработчик изменения размера
-        self.show_label.resizeEvent = lambda e: self.update_video_buttons_position()
+        self.show_label.resizeEvent = lambda e: self.update_video_display()
         
         # обновляем позиции элементов
-        self.update_video_buttons_position()
+        self.update_video_display()
 
+    def update_play_button_position(self):
+        """
+        Центрирует кнопку воспроизведения.
+        """
+        if hasattr(self, 'play_button'):
+            x = (self.show_label.width() - self.play_button.width()) // 2
+            y = (self.show_label.height() - self.play_button.height()) // 2
+            self.play_button.move(x, y)
+
+    def update_video_display(self):
+        """
+        Обработчик изменения размера видео (или окна).
+        """
+        # обновляем позицию служебных кнопок
+        self.update_buttons_position()
+        # обновляем позицию кнопки запуска/останова
+        self.update_play_button_position()
+    
     def on_video_click(self, event):
         """
         Обработчик клика по видео.
@@ -611,15 +597,6 @@ class MainScreen(QMainWindow):
         if self.is_playing:
             self.play_button.hide()
 
-    def update_play_button_position(self):
-        """
-        Центрирует кнопку воспроизведения.
-        """
-        if hasattr(self, 'play_button') and hasattr(self, 'video_label'):
-            x = (self.video_label.width() - self.play_button.width()) // 2
-            y = (self.video_label.height() - self.play_button.height()) // 2
-            self.play_button.move(x, y)
-
     def update_frame(self):
         """
         Обновляет текущий кадр видео.
@@ -633,14 +610,8 @@ class MainScreen(QMainWindow):
             q_img = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
             pixmap = QPixmap.fromImage(q_img)
 
+            # масштабируем изображение (кадр) под размер виджета
             self.update_cropped_image(pixmap)
-            
-            # масштабируем изображение под размер виджета
-            # self.video_label.setPixmap(pixmap.scaled(
-            #     self.video_label.size(), 
-            #     Qt.KeepAspectRatio,
-            #     Qt.SmoothTransformation
-            # ))
         else:
             # если видео закончилось, возвращаемся в начало
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -654,9 +625,17 @@ class MainScreen(QMainWindow):
             self.play_button.setText("▶")
         else:
             fps = self.cap.get(cv2.CAP_PROP_FPS)
-            self.video_timer.start(int(1000 / fps))  # Обновляем с частотой кадров видео
+            self.video_timer.start(int(1000 / fps))  # обновляем с частотой кадров видео
             self.play_button.setText("❚❚")
         self.is_playing = not self.is_playing
+
+    def view_content_video(self):
+        """
+        Открывает окно просмотра с полным видео.
+        """
+        if hasattr(self, 'file_path') and self.file_path:
+            self.preview_window = PreviewWindowVideo(self.file_path)
+            self.preview_window.show()
 
 
     # def update_methods_table(self):
