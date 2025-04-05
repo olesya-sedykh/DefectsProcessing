@@ -410,32 +410,61 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ В ЦЕЛОМ
     # ================================================================================
 
+    # def __safe_imread(self, path):
+    #     """
+    #     Безопасное чтение с русскими символами в пути.
+    #     """
+    #     resolved_path = Path(path).resolve()
+    #     return cv2.imread(str(resolved_path))
+
+    # def __safe_imwrite(self, path, img):
+    #     """
+    #     Безопасная запись с русскими символами.
+    #     """
+    #     resolved_path = Path(path).resolve()
+    #     if not cv2.imwrite(str(resolved_path), img):
+    #         raise IOError(f"Не удалось сохранить {resolved_path}")
+
     def __cv2_imread_unicode(self, path):
-        """
-        Аналог cv2.imread() с поддержкой Unicode-путей.
-        """
-        # создаем временный файл с ASCII-именем (в папке C:\Users\ВАШ_ПОЛЬЗОВАТЕЛЬ\AppData\Local\Temp)
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-            temp_path = tmp.name
-        # копируем оригинальный файл во временный
-        shutil.copy2(path, temp_path)
-        # читаем временный файл
-        cv2.imread(temp_path)
-        # удаляем временный файл
-        os.unlink(temp_path)
+        """Аналог cv2.imread() с поддержкой Unicode-путей"""
+        try:
+            # Создаем временный файл с ASCII-именем
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                temp_path = tmp.name
+            
+            # Копируем оригинальный файл во временный
+            shutil.copy2(path, temp_path)
+            
+            # Читаем временный файл
+            img = cv2.imread(temp_path)
+            
+            # Удаляем временный файл
+            os.unlink(temp_path)
+            
+            return img
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise ValueError(f"Ошибка загрузки изображения: {str(e)}")
 
     def __cv2_imwrite_unicode(self, path, img):
-        """
-        Аналог cv2.imwrite() с поддержкой Unicode-путей.
-        """
-        # создаем временный файл
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-            temp_path = tmp.name
-        # сохраняем во временный файл
-        cv2.imwrite(temp_path, img)
-        # перемещаем в конечный путь с Unicode-именем
-        shutil.move(temp_path, path)
-        return True
+        """Аналог cv2.imwrite() с поддержкой Unicode-путей"""
+        try:
+            # Создаем временный файл
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                temp_path = tmp.name
+            
+            # Сохраняем во временный файл
+            if not cv2.imwrite(temp_path, img):
+                raise IOError("Ошибка сохранения временного файла")
+            
+            # Перемещаем в конечный путь с Unicode-именем
+            shutil.move(temp_path, path)
+            return True
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise IOError(f"Ошибка сохранения изображения: {str(e)}")
 
 
     def process_image(self, image, processing_method, output_path=None, *args, **kwargs):
@@ -488,7 +517,19 @@ class ProcessingClass:
         """
         # input_path, output_path = self.get_paths(image_name)
 
+        print(input_image_path)
+        print(output_image_path)
+        print(defect_mode)
+
+        if not os.path.exists(input_image_path):
+            print(f"Файл не найден: {input_image_path}")
+
+        if os.path.getsize(input_image_path) == 0:
+            print("Файл изображения пуст (0 байт)")
+
+
         input_image = self.__cv2_imread_unicode(input_image_path)
+        if input_image is None: print('none')
         def apply_methods():
             if predicted_class == 'blur': 
                 processed_image = self.unsharp_masking(input_image)
