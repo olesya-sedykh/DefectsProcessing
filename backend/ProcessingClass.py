@@ -2,18 +2,21 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 import tensorflow as tf  
-from tensorflow.keras.preprocessing import image
+# from tensorflow.keras.preprocessing import image
 import numpy as np
 import pywt
 from skimage.restoration import (denoise_wavelet, estimate_sigma)
 from itertools import product
+from pathlib import Path
+import tempfile
+import shutil
 
 class ProcessingClass:
-    def __init__(self, input_path, model_path, output_path, processing_mode):
+    def __init__(self, input_path, model_path, output_path):
         self.input_path = input_path
         self.model_path = model_path
         self.output_path = output_path
-        self.processing_mode = processing_mode
+        # self.processing_mode = processing_mode
 
         self.model = tf.keras.models.load_model(self.model_path)
 
@@ -407,6 +410,34 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ В ЦЕЛОМ
     # ================================================================================
 
+    def __cv2_imread_unicode(self, path):
+        """
+        Аналог cv2.imread() с поддержкой Unicode-путей.
+        """
+        # создаем временный файл с ASCII-именем (в папке C:\Users\ВАШ_ПОЛЬЗОВАТЕЛЬ\AppData\Local\Temp)
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            temp_path = tmp.name
+        # копируем оригинальный файл во временный
+        shutil.copy2(path, temp_path)
+        # читаем временный файл
+        cv2.imread(temp_path)
+        # удаляем временный файл
+        os.unlink(temp_path)
+
+    def __cv2_imwrite_unicode(self, path, img):
+        """
+        Аналог cv2.imwrite() с поддержкой Unicode-путей.
+        """
+        # создаем временный файл
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            temp_path = tmp.name
+        # сохраняем во временный файл
+        cv2.imwrite(temp_path, img)
+        # перемещаем в конечный путь с Unicode-именем
+        shutil.move(temp_path, path)
+        return True
+
+
     def process_image(self, image, processing_method, output_path=None, *args, **kwargs):
         """
         Обработка изображения.
@@ -453,11 +484,11 @@ class ProcessingClass:
         для исправления каждого из дефектов.
         defect_mode - режим исправления дефектов, может принимать 2 значения:
             1. 'all_defects' - исправляет все дефекты на изображении
-            2. 'one_defect' - исправляет 1, самый значимый дефект на изоюражении
+            2. 'one_defect' - исправляет 1, самый значимый дефект на изображении
         """
         # input_path, output_path = self.get_paths(image_name)
 
-        input_image = cv2.imread(input_image_path)
+        input_image = self.__cv2_imread_unicode(input_image_path)
         def apply_methods():
             if predicted_class == 'blur': 
                 processed_image = self.unsharp_masking(input_image)
@@ -472,13 +503,13 @@ class ProcessingClass:
             return processed_image
 
         if defect_mode == 'one_defect':
-            predicted_class = self.determine_class(self.model, input_image)[0]
+            predicted_class = self.determine_class(input_image)[0]
             processed_image = apply_methods()
         elif defect_mode == 'all_defects':
             defects_in_image = [] # список дефектов на картинке
             processed_image = input_image.copy()
             while True:
-                predicted_class = self.determine_class(self.model, processed_image)[0]
+                predicted_class = self.determine_class(processed_image)[0]
                 if predicted_class in defects_in_image:
                     break
 
@@ -489,7 +520,8 @@ class ProcessingClass:
 
                 processed_image = apply_methods()
 
-        cv2.imwrite(output_image_path, processed_image)
+        # cv2.imwrite(output_image_path, processed_image)
+        self.__cv2_imwrite_unicode(output_image_path, processed_image)
 
         # return processed_image
     
@@ -521,13 +553,13 @@ class ProcessingClass:
             return processed_image
         
         if defect_mode == 'one_defect':
-            predicted_class = self.determine_class(self.model, input_image)[0]
+            predicted_class = self.determine_class(input_image)[0]
             processed_image = apply_methods(predicted_class)
         elif defect_mode == 'all_defects':
             defects_in_image = [] # список дефектов на картинке
             processed_image = input_image.copy()
             while True:
-                predicted_class = self.determine_class(self.model, processed_image)[0]
+                predicted_class = self.determine_class(processed_image)[0]
                 if predicted_class in defects_in_image:
                     break
 

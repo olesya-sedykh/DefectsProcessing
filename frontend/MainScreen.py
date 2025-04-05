@@ -18,12 +18,18 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 
 import os
 import cv2
+from pathlib import Path
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
 from frontend.PreviewWindowImage import PreviewWindowImage
 from frontend.PreviewWindowVideo import PreviewWindowVideo
 from ParameterDialog import ParameterDialog
+from backend.ProcessingClass import ProcessingClass
+
+PROJECT_ROOT = Path(__file__).parent.parent
+MODEL_PATH = PROJECT_ROOT / 'mobile_net_model.h5'
+OUTPUT_PATH = PROJECT_ROOT / 'temp'
 
 class MainScreen(QMainWindow):
     def __init__(self):
@@ -38,6 +44,9 @@ class MainScreen(QMainWindow):
         self.setGeometry(150, 150, self.width, self.height)
         self.setStyleSheet(f"background-color: {self.background_color};")
         self.center()
+
+        # потом сделать нормальный путь
+        # self.output_process_path = 'temp'
 
         # шрифт
         self.font = QFont()
@@ -140,25 +149,75 @@ class MainScreen(QMainWindow):
         
         # методы для ручной обработки
         self.manual_options = {
-            "Размытие": ["Фильтр Лапласа", "Фильтр Гаусса", "Фильтр Собеля"],
-            "Низкая контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание", "Гамма-коррекция"],
-            "Блики": ["Адаптивный метод", "Метод на основе морфологии", "Пороговая обработка"],
-            "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса"]
+            "Размытие": ["Фильтр Лапласа", "Повышение резкости"],
+            "Низкая контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
+            "Блики": ["Восстановление с помощью маски", "Адаптивное восстановление"],
+            "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса", "Вейвлет-обработка", "Нелокальное среднее"]
         }
         
         # параметры по умолчанию для методов
         self.method_parameters = {
-            "Фильтр Лапласа": {"Размер ядра": 3, "Масштаб": 1.0, "Дельта": 0},
-            "Алгоритм CLAHE": {"Лимит контраста": 2.0, "Размер тайла": 8},
-            "Адаптивный метод": {"Размер блока": 11, "Константа": 2},
-            "Фильтр среднего значения": {"Размер ядра": 5},
-            "Фильтр Гаусса": {"Размер ядра": 3, "Сигма": 1.0},
-            "Фильтр Собеля": {"Размер ядра": 3, "Масштаб": 1.0, "Дельта": 0},
-            "Гистограммное выравнивание": {},
-            "Гамма-коррекция": {"Гамма": 1.0},
-            "Метод на основе морфологии": {"Размер ядра": 3, "Операция": "Открытие"},
-            "Пороговая обработка": {"Порог": 127, "Максимальное значение": 255},
-            "Медианный фильтр": {"Размер ядра": 3}
+            "Фильтр Лапласа": {
+                "alpha": 6
+            },
+            "Повышение резкости": {
+                "sigma": 3, 
+                "alpha": 5.5, 
+                "betta": -4.5
+            },
+
+            "Гистограммное выравнивание": {
+                "color_space": "hsv"
+            },
+            "Алгоритм CLAHE": {
+                "color_space": "hsv", 
+                "clip_limit": 6.5, 
+                "tile_grid_size": (12, 12)
+            },
+
+            "Восстановление с помощью маски": {
+                "mask_mode": "brightness", 
+                "color_space_mask": "hsv",
+                "color_space": "yuv",
+                "threshold": 160,
+                "inpaint_radius": 3,
+                "inpaint_method": "inpaint_ns"
+            },
+            "Адаптивное восстановление": {
+                "mask_mode": "brightness",
+                "color_space_mask": "hsv",
+                "color_space": "yuv",
+                "adaptive_method": 1,
+                "block_size": 7,
+                "C": 5,
+                "inpaint_radius": 3,
+                "inpaint_method": "inpaint_ns"
+            },
+
+            "Фильтр среднего значения": {
+                "estimate_noise": 'function', 
+                "sigma": 3
+            },
+            "Медианный фильтр": {
+                "estimate_noise": 'function', 
+                "sigma": 3
+            },
+            "Фильтр Гаусса": {
+                "estimate_noise": 'function', 
+                "sigma": 3
+            },
+            "Вейвлет-обработка": {
+                "type": "haar", 
+                "mode": "soft", 
+                "number_of_levels": 3, 
+                "estimate_noise": "function", 
+                "sigma": 3
+            },
+            "Нелокальное среднее": {
+                "h": 10, 
+                "template_window_size": 7, 
+                "search_window_size": 21
+            }
         }
         
         print("Before update")
@@ -172,7 +231,7 @@ class MainScreen(QMainWindow):
         self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.process_button.setFont(self.font)
-        # self.process_button.clicked.connect(self.processing)
+        self.process_button.clicked.connect(self.processing)
         left_layout.addWidget(self.process_button)
 
         # распределение размеров элементов по высоте для левой стороны
@@ -245,7 +304,14 @@ class MainScreen(QMainWindow):
             )
 
         if self.file_path:
+            # отображаем файл
             self.update_display()
+            # создаем экземпляр класса-обработчика
+            self.processor = ProcessingClass(
+                input_path=self.file_path,
+                model_path=MODEL_PATH,
+                output_path=OUTPUT_PATH
+            )
 
     def update_display(self):
         """
@@ -360,6 +426,11 @@ class MainScreen(QMainWindow):
         """
         Удаляет отображаемый файл из области по кнопке закрытия.
         """
+        # освобождаем ресурсы из-под объекта-обработчика
+        if hasattr(self, 'processor'):
+            self.processor.cleanup()
+            del self.processor
+
         # останавливаем таймер, если он существует
         if hasattr(self, 'video_timer') and self.video_timer:
             self.video_timer.stop()
@@ -769,3 +840,21 @@ class MainScreen(QMainWindow):
         if dialog.exec_() == QDialog.Accepted and editable:
             # Save changed parameters for manual processing
             self.method_parameters[method_name] = dialog.get_parameters()
+
+
+    # =========================================================================
+    # ИСПРАВЛЕНИЕ ДЕФЕКТОВ
+    # =========================================================================
+
+    def processing(self):
+        print('1')
+        if self.file_type.currentText() == 'Обработка изображения':
+            print('2')
+            if self.process_type.currentText() == 'Автоматическая обработка':
+                print('3')
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    print('4')
+                    self.processor.automatic_recovery_image(
+                        input_image_path=self.processor.input_path, 
+                        output_image_path=self.processor.output_path,
+                        defect_mode='one_defect')
