@@ -228,7 +228,7 @@ class MainScreen(QMainWindow):
 
         # кнопка для обработки дефектов
         self.process_button = QPushButton("Исправить дефекты")
-        self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.process_button.setFont(self.font)
         self.process_button.clicked.connect(self.processing)
@@ -256,6 +256,23 @@ class MainScreen(QMainWindow):
         # правая сторона
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
+
+        self.process_title = QLabel("Результат обработки")
+        # self.process_title.setText("Результат обработки")
+        self.process_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.process_title.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.process_title.setFont(self.font)
+        right_layout.addWidget(self.process_title)
+
+        self.result_widget = QWidget()
+        self.result_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
+        self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.result_layout = QVBoxLayout(self.result_widget)
+        right_layout.addWidget(self.result_widget)
+
+        right_layout.setStretch(0, 10)
+        right_layout.setStretch(1, 35)
+
         main_layout.addWidget(right_widget, stretch=50)
 
     def center(self) -> None:
@@ -305,7 +322,7 @@ class MainScreen(QMainWindow):
 
         if self.file_path:
             # отображаем файл
-            self.update_display()
+            self.update_display(file_path=self.file_path, close=True, side='left')
             # создаем экземпляр класса-обработчика
             self.processor = ProcessingClass(
                 input_path=self.file_path,
@@ -313,14 +330,16 @@ class MainScreen(QMainWindow):
                 output_path=OUTPUT_PATH
             )
 
-    def update_display(self):
+    def update_display(self, file_path, close, side):
         """
         Определяет заполнение области после загрузки файла.
+        Параметр close определяет наличие кнопки закрытия. Если файл загружается
+        первый раз, то она нужна. Если загружаемый файл - результат обработки, то нет.
         """
         if self.file_path:
             processing_type = self.file_type.currentText()
             if processing_type == "Обработка изображения":
-                self.display_image()
+                self.display_image(file_path=file_path, close=close, side=side)
             elif processing_type == "Обработка датасета":
                 self.display_dataset()
             elif processing_type == "Обработка видео":
@@ -357,22 +376,26 @@ class MainScreen(QMainWindow):
         # добавляем контейнер с кнопкой в file_layout
         self.file_layout.addWidget(self.load_button_container)
 
-    def create_service_buttons(self, type):
+    def create_service_buttons(self, type, close, side):
         """
         Создает окружение для кнопок и сами кнопки закрытия и просмотра.
+        Параметр type определяет тип файла.
+        Параметр close определяет наличие кнопки закрытия. Если файл загружается
+        первый раз, то она нужна. Если загружаемый файл - результат обработки, то нет
         """
         # создаем overlay виджет для кнопок
-        self.overlay_widget = QWidget(self.show_label) # создаем виджет поверх виджета для картинки или видео
-        self.overlay_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False) # именно этот, а не родительский, виджет будет реагировать на мышь
-        overlay_layout = QHBoxLayout(self.overlay_widget) # расположение по горизонтали
+        if side == 'left': overlay_widget = QWidget(self.left_show_label) # создаем виджет поверх виджета для картинки или видео
+        elif side == 'right': overlay_widget = QWidget(self.right_show_label)
+        overlay_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False) # именно этот, а не родительский, виджет будет реагировать на мышь
+        overlay_layout = QHBoxLayout(overlay_widget) # расположение по горизонтали
         overlay_layout.setContentsMargins(0, 0, 0, 0)
-        self.overlay_widget.setStyleSheet("background: transparent; border: none;") # делаем прозрачным фон виджета для кнопок
+        overlay_widget.setStyleSheet("background: transparent; border: none;") # делаем прозрачным фон виджета для кнопок
         # overlay_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
         
         # кнопка просмотра (глаз)
-        self.view_button = QPushButton("👁")
-        self.view_button.setFixedSize(30, 30)
-        self.view_button.setStyleSheet("""
+        view_button = QPushButton("👁")
+        view_button.setFixedSize(30, 30)
+        view_button.setStyleSheet("""
             QPushButton {
                 background-color: white;
                 border-radius: 15px;
@@ -384,41 +407,62 @@ class MainScreen(QMainWindow):
             }
         """)
         if type == 'image':
-            self.view_button.clicked.connect(self.view_content_image)
+            view_button.clicked.connect(self.view_content_image)
         elif type == 'video':
-            self.view_button.clicked.connect(self.view_content_video)
+            view_button.clicked.connect(self.view_content_video)
+        overlay_layout.addWidget(view_button)
         
         # кнопка закрытия (крестик)
-        self.close_button = QPushButton("×")
-        self.close_button.setFixedSize(30, 30)
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                border-radius: 15px;
-                border: 1px solid gray;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #f0f0f0;
-            }
-        """)
-        self.close_button.clicked.connect(self.clear)
-        
-        # добавляем кнопки в виджет
-        overlay_layout.addWidget(self.view_button)
-        overlay_layout.addWidget(self.close_button)
+        if close:
+            close_button = QPushButton("×")
+            close_button.setFixedSize(30, 30)
+            close_button.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    border-radius: 15px;
+                    border: 1px solid gray;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #f0f0f0;
+                }
+            """)
+            close_button.clicked.connect(self.clear)
+            overlay_layout.addWidget(close_button)
+
+        if side == 'left':
+            self.left_overlay_widget = overlay_widget
+            self.left_view_button = view_button
+            self.left_close_button = close_button
+        elif side == 'right':
+            self.right_overlay_widget = overlay_widget
+            self.right_view_button = view_button
         
         # устанавливаем размер виджета для кнопок (подгоняет размер под содержимое)
-        self.overlay_widget.adjustSize()
+        overlay_widget.adjustSize()
     
-    def delete_files_widgets(self):
+    def delete_files_widgets(self, side):
         """
         Удаляет виджеты из области отображения файлов.
         """
-        # удаление предыдущих виджетов, чтобы они не накапливались
-        for i in reversed(range(self.file_layout.count())):
-            widget = self.file_layout.itemAt(i).widget()
+        # if side == 'left':
+        #     if hasattr(self, 'left_show_container'):
+        #         self.left_show_container.deleteLater()
+        #         del self.left_show_container
+        #     if hasattr(self, 'left_show_label'):
+        #         del self.left_show_label
+        # elif side == 'right':
+        #     if hasattr(self, 'right_show_container'):
+        #         self.right_show_container.deleteLater()
+        #         del self.right_show_container
+        #     if hasattr(self, 'right_show_label'):
+        #         del self.right_show_label
+
+        if side == 'left': layout = self.file_layout
+        elif side == 'right': layout = self.result_layout
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
             if widget: 
                 widget.deleteLater()
     
@@ -439,44 +483,53 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'cap') and self.cap:
             self.cap.release()
 
-        # удаляем виджеты из облаасти отображения файлов
-        if hasattr(self, 'overlay_widget'):
-            self.delete_files_widgets()
+        # удаляем виджеты из области отображения файлов
+        if hasattr(self, 'file_layout'):
+            self.delete_files_widgets('left')
 
         # опять создаем контейнер для кнопки загрузки и саму кнопку
         self.create_load_button()
 
-    def create_show_elements(self):
+    def create_show_elements(self, side):
         """
         Подготавливает элементы для отображения файла.
         """
         # удаление предыдущих виджетов, чтобы они не накапливались
-        self.delete_files_widgets()
+        self.delete_files_widgets(side=side)
 
         # контейнер для изображения
-        self.show_container = QWidget() # "рамка" (область) для изоражения
-        self.show_container_layout = QVBoxLayout(self.show_container) # правила размещения внутри области (по вертикали)
-        # self.image_container.setLayout(QVBoxLayout()) # правила размещения внутри области (по вертикали)
-        self.show_container.layout().setContentsMargins(0, 0, 0, 0) # содержимое должно занимать все пространство
+        show_container = QWidget() # "рамка" (область) для изоражения
+        show_container_layout = QVBoxLayout(show_container) # правила размещения внутри области (по вертикали)
+        show_container_layout.setContentsMargins(0, 0, 0, 0) # содержимое должно занимать все пространство
         
         # QLabel для изображения
-        self.show_label = QLabel()
-        self.show_label.setAlignment(Qt.AlignCenter)
-        self.show_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored) # игнорировать рекомендуемые размеры
-        self.show_label.setStyleSheet("background-color: #f0f0f0;")
+        show_label = QLabel()
+        show_label.setAlignment(Qt.AlignCenter)
+        show_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored) # игнорировать рекомендуемые размеры
+        show_label.setStyleSheet("background-color: #f0f0f0;")
 
         # добавляем элемент показа в контейнер
-        self.show_container_layout.addWidget(self.show_label)
+        show_container_layout.addWidget(show_label)
         # добавляем контейнер в лайаут для отображения файла
-        self.file_layout.addWidget(self.show_container)
+        if side == 'left': 
+            self.left_show_label = show_label
+            self.left_show_container = show_container
+            self.file_layout.addWidget(self.left_show_container)
+        elif side == 'right': 
+            self.right_show_label = show_label
+            self.right_show_container = show_container
+            self.result_layout.addWidget(self.right_show_container)
 
-    def update_cropped_image(self, pixmap):
+    def update_cropped_image(self, pixmap, side):
         """
-        Обновляет отображаемую часть изображения мли кадра (среднюю часть).
+        Обновляет отображаемую часть изображения или кадра (среднюю часть).
         """        
+        if side == 'left': show_label = self.left_show_label
+        elif side == 'right': show_label = self.right_show_label
+        
         # получаем текущие размеры виджета для изображения
-        width = self.show_label.width()
-        height = self.show_label.height()
+        width = show_label.width()
+        height = show_label.height()
         
         # размеры самого изображения
         img_width = pixmap.width()
@@ -495,41 +548,33 @@ class MainScreen(QMainWindow):
             Qt.IgnoreAspectRatio, # растягивает по заданным размерам
             Qt.SmoothTransformation # сглаживание
         )
-        self.show_label.setPixmap(scaled)
-
-    # def update_image_buttons_position(self):
-    #     """
-    #     Обновляет позиции кнопок управления (служебных кнопок).
-    #     """
-    #     if hasattr(self, 'overlay_widget'):
-    #         label_width = self.show_label.width()
-    #         self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
+        show_label.setPixmap(scaled)
 
     def update_buttons_position(self):
         """
         Обновляет позиции кнопок управления (служебных кнопок).
         """
-        if hasattr(self, 'overlay_widget'):
-            label_width = self.show_label.width()
-            self.overlay_widget.move(label_width - 75, 10)  # 75 = 30+30+15 отступ
-            
-            # для видео еще кнопка play
-            # if hasattr(self, 'play_button'):
-            #     self.play_button.move(
-            #         self.show_label.width() // 2 - 30,
-            #         self.show_label.height() // 2 - 30
-            #     )
+        if hasattr(self, 'left_overlay_widget') and self.left_overlay_widget:
+            left_label_width = self.left_show_label.width() if hasattr(self, 'left_show_label') else 0
+            self.left_overlay_widget.move(left_label_width - self.left_overlay_widget.width() - 10, 10)
+        
+        if hasattr(self, 'right_overlay_widget') and self.right_overlay_widget:
+            right_label_width = self.right_show_label.width() if hasattr(self, 'right_show_label') else 0
+            self.right_overlay_widget.move(right_label_width - self.right_overlay_widget.width() - 10, 10)
+
 
     # =========================================================================
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ КАРТИНКИ
     # =========================================================================
     
-    def display_image(self):
+    def display_image(self, file_path, close, side):
         """
         Отображает изображение.
+        Параметр close определяет наличие кнопки закрытия. Если файл загружается
+        первый раз, то она нужна. Если загружаемый файл - результат обработки, то нет
         """
         # загружаем изображение
-        original_pixmap = QPixmap(self.file_path) # original_pixmap - это непосредственно изображение
+        original_pixmap = QPixmap(file_path) # original_pixmap - это непосредственно изображение
         if original_pixmap.isNull():
             error_widget = QLabel()
             error_widget.setText("Ошибка: не удалось загрузить изображение")
@@ -539,20 +584,21 @@ class MainScreen(QMainWindow):
             return
 
         # создаем элементы показа картинки
-        self.create_show_elements()
+        self.create_show_elements(side=side)
 
         # создаем кнопки закрытия и просмотра
-        self.create_service_buttons('image')
+        self.create_service_buttons(type='image', close=close, side=side)
         
         # устанавливаем обработчик изменения размера изображения
-        self.show_label.resizeEvent = lambda e: self.update_image_display(original_pixmap)
+        if side == 'left': self.left_show_label.resizeEvent = lambda e: self.update_image_display(original_pixmap, side)
+        elif side == 'right': self.right_show_label.resizeEvent = lambda e: self.update_image_display(original_pixmap, side)
 
-    def update_image_display(self, pixmap):
+    def update_image_display(self, pixmap, side):
         """
         Обработчик изменения размера изображения (или окна).
         """
         # обрезаем изображение для отображения
-        self.update_cropped_image(pixmap)
+        self.update_cropped_image(pixmap, side)
         # обновляем позицию кнопок
         self.update_buttons_position()
 
@@ -568,7 +614,7 @@ class MainScreen(QMainWindow):
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ВИДЕО
     # =========================================================================
 
-    def display_video(self):
+    def display_video(self, close, layout):
         """
         Отображает видео в маленьком окошке с использованием OpenCV.
         """
@@ -592,10 +638,10 @@ class MainScreen(QMainWindow):
             return
 
         # создаем элементы показа видео
-        self.create_show_elements()
+        self.create_show_elements(layout=layout)
 
         # создаем кнопки закрытия и просмотра
-        self.create_service_buttons('video')
+        self.create_service_buttons('video', close=close)
 
         # таймер для обновления кадров
         self.video_timer = QTimer()
@@ -847,14 +893,20 @@ class MainScreen(QMainWindow):
     # =========================================================================
 
     def processing(self):
-        print('1')
         if self.file_type.currentText() == 'Обработка изображения':
-            print('2')
             if self.process_type.currentText() == 'Автоматическая обработка':
-                print('3')
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
-                    print('4')
-                    self.processor.automatic_recovery_image(
+                    result = self.processor.automatic_recovery_image(
                         input_image_path=self.processor.input_path, 
                         output_image_path=self.processor.output_path,
                         defect_mode='one_defect')
+        if result:
+            # processed_files = list(Path(OUTPUT_PATH).glob('processed_*'))
+            # if processed_files:
+            #     processed_file_path = processed_files[0]
+            # else:
+            #     print("Обработанный файл не найден")
+            #     processed_file_path = None
+            print(result)
+            self.update_display(file_path=result, close=False, side='right')
+            

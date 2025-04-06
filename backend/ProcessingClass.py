@@ -496,40 +496,59 @@ class ProcessingClass:
         """
         # input_path, output_path = self.get_paths(image_name)
 
-        input_image = self.__cv2_imread_unicode(input_image_path)
-        def apply_methods():
-            if predicted_class == 'blur': 
-                processed_image = self.unsharp_masking(input_image)
-            elif predicted_class == 'contrast': 
-                processed_image = self.hist_equalization(input_image, 'yuv')
-            elif predicted_class == 'glares': 
-                processed_image = self.glares_inpaint(input_image)
-            elif predicted_class == 'noise': 
-                processed_image = self.adaptive_average_filter(input_image, estimate_noise='function')
-            elif processed_image == 'good':
-                processed_image = input_image.copy()
-            return processed_image
+        try:
+            input_image = self.__cv2_imread_unicode(input_image_path)
+            if input_image is None:
+                return None
+            
+            def apply_methods():
+                if predicted_class == 'blur': 
+                    processed_image = self.unsharp_masking(input_image)
+                elif predicted_class == 'contrast': 
+                    processed_image = self.hist_equalization(input_image, 'yuv')
+                elif predicted_class == 'glares': 
+                    processed_image = self.glares_inpaint(input_image)
+                elif predicted_class == 'noise': 
+                    processed_image = self.adaptive_average_filter(input_image, estimate_noise='function')
+                elif processed_image == 'good':
+                    processed_image = input_image.copy()
+                return processed_image
 
-        if defect_mode == 'one_defect':
-            predicted_class = self.determine_class(input_image)[0]
-            processed_image = apply_methods()
-        elif defect_mode == 'all_defects':
-            defects_in_image = [] # список дефектов на картинке
-            processed_image = input_image.copy()
-            while True:
-                predicted_class = self.determine_class(processed_image)[0]
-                if predicted_class in defects_in_image:
-                    break
-
-                if predicted_class == 'good':
-                    break
-                else:
-                    defects_in_image.append(predicted_class)
-
+            if defect_mode == 'one_defect':
+                predicted_class = self.determine_class(input_image)[0]
                 processed_image = apply_methods()
+            elif defect_mode == 'all_defects':
+                defects_in_image = [] # список дефектов на картинке
+                processed_image = input_image.copy()
+                while True:
+                    predicted_class = self.determine_class(processed_image)[0]
+                    if predicted_class in defects_in_image:
+                        break
 
-        # cv2.imwrite(output_image_path, processed_image)
-        self.__cv2_imwrite_unicode(output_image_path, processed_image)
+                    if predicted_class == 'good':
+                        break
+                    else:
+                        defects_in_image.append(predicted_class)
+
+                    processed_image = apply_methods()
+
+            # cv2.imwrite(output_image_path, processed_image)
+
+            # формируем необходимое название для сохранения
+            original_filename = os.path.basename(input_image_path)
+            name, ext = os.path.splitext(original_filename)
+            processed_filename = f"processed_{name}{ext}"
+            processed_path = os.path.join(output_image_path, processed_filename)
+
+            print(output_image_path)
+            print(processed_path)
+
+            if self.__cv2_imwrite_unicode(processed_path, processed_image):
+                return processed_path
+        
+        except Exception as e:
+            print(f"Ошибка при обработке: {str(e)}")
+            return None
 
         # return processed_image
     
