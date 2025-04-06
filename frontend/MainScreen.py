@@ -343,7 +343,7 @@ class MainScreen(QMainWindow):
             elif processing_type == "Обработка датасета":
                 self.display_dataset()
             elif processing_type == "Обработка видео":
-                self.display_video()
+                self.display_video(file_path=file_path, close=close, side=side)
 
     def create_load_button(self):
         # контейнер для кнопки загрузки
@@ -614,12 +614,12 @@ class MainScreen(QMainWindow):
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ВИДЕО
     # =========================================================================
 
-    def display_video(self, close, layout):
+    def display_video(self, file_path, close, side):
         """
         Отображает видео в маленьком окошке с использованием OpenCV.
         """
         # проверяем существование файла
-        if not os.path.exists(self.file_path):
+        if not os.path.exists(file_path):
             error_widget = QLabel()
             error_widget.setText("Ошибка: файл не найден")
             error_widget.setStyleSheet("color: red;")
@@ -628,7 +628,7 @@ class MainScreen(QMainWindow):
             return
         
         # загружаем видео с помощью OpenCV VideoCapture
-        self.cap = cv2.VideoCapture(self.file_path)
+        self.cap = cv2.VideoCapture(file_path)
         if not self.cap.isOpened():
             error_widget = QLabel()
             error_widget.setText("Ошибка: не удалось открыть видео")
@@ -638,20 +638,23 @@ class MainScreen(QMainWindow):
             return
 
         # создаем элементы показа видео
-        self.create_show_elements(layout=layout)
+        self.create_show_elements(side=side)
 
         # создаем кнопки закрытия и просмотра
-        self.create_service_buttons('video', close=close)
+        self.create_service_buttons('video', close=close, side=side)
 
         # таймер для обновления кадров
         self.video_timer = QTimer()
-        self.video_timer.timeout.connect(self.update_frame)
+        self.video_timer.timeout.connect(lambda: self.update_frame(side))
         self.is_playing = False
+
+        if side == 'left': show_label = self.left_show_label
+        elif side == 'right': show_label = self.right_show_label
         
         # центральная кнопка воспроизведения
-        self.play_button = QPushButton("▶", self.show_label)
-        self.play_button.setFixedSize(60, 60)
-        self.play_button.setStyleSheet("""
+        play_button = QPushButton("▶", show_label)
+        play_button.setFixedSize(60, 60)
+        play_button.setStyleSheet("""
             QPushButton {
                 background-color: rgba(255, 255, 255, 150);
                 border-radius: 30px;
@@ -662,59 +665,84 @@ class MainScreen(QMainWindow):
                 background-color: rgba(255, 255, 255, 200);
             }
         """)
-        self.play_button.clicked.connect(self.toggle_play_video)
+        play_button.clicked.connect(self.toggle_play_video)
+
+        if side == 'left': self.left_play_button = play_button
+        elif side == 'right': self.right_play_button = play_button
+
+        # центрируем кнопку запуска после создания
+        self.update_play_button_position(side)
 
         # обработчики событий мыши
-        self.show_label.mousePressEvent = self.on_video_click
-        self.show_label.enterEvent = self.show_play_button
-        self.show_label.leaveEvent = self.hide_play_button
+        show_label.mousePressEvent = lambda event: self.on_video_click(side=side)
+        show_label.enterEvent = lambda event: self.show_play_button(side=side)
+        show_label.leaveEvent = lambda event: self.hide_play_button(side=side)
+
+        # устанавливаем отслеживание мыши для окна показа, но убираем для кнопки, чтобы проходило сквозь кнопку
+        play_button.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        show_label.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         
         # устанавливаем обработчик изменения размера
-        self.show_label.resizeEvent = lambda e: self.update_video_display()
+        show_label.resizeEvent = lambda e: self.update_video_display(side)
         
         # обновляем позиции элементов
-        self.update_video_display()
+        self.update_video_display(side)
 
-    def update_play_button_position(self):
+    def update_play_button_position(self, side):
         """
         Центрирует кнопку воспроизведения.
         """
-        if hasattr(self, 'play_button'):
-            x = (self.show_label.width() - self.play_button.width()) // 2
-            y = (self.show_label.height() - self.play_button.height()) // 2
-            self.play_button.move(x, y)
+        if side == 'left': 
+            if hasattr(self, 'left_play_button'):
+                x = (self.left_show_label.width() - self.left_play_button.width()) // 2
+                y = (self.left_show_label.height() - self.left_play_button.height()) // 2
+                self.left_play_button.move(x, y)
+        elif side == 'right': 
+            if hasattr(self, 'right_play_button'):
+                x = (self.right_show_label.width() - self.right_play_button.width()) // 2
+                y = (self.right_show_label.height() - self.right_play_button.height()) // 2
+                self.right_play_button.move(x, y)
 
-    def update_video_display(self):
+        # print(show_label.width())
+        # print(play_button.width())
+
+        # if hasattr(self, 'play_button'):
+        #     x = (show_label.width() - play_button.width()) // 2
+        #     y = (show_label.height() - play_button.height()) // 2
+        #     play_button.move(x, y)
+
+    def update_video_display(self, side):
         """
         Обработчик изменения размера видео (или окна).
         """
         # обновляем позицию служебных кнопок
         self.update_buttons_position()
         # обновляем позицию кнопки запуска/останова
-        self.update_play_button_position()
+        self.update_play_button_position(side=side)
     
-    def on_video_click(self, event):
+    def on_video_click(self, side):
         """
         Обработчик клика по видео.
         """
-        if self.is_playing:
-            self.toggle_play_video()
+        self.toggle_play_video(side=side)
 
-    def show_play_button(self, event):
+    def show_play_button(self, side):
         """
         Показывает кнопку при наведении мыши.
         """
-        self.play_button.show()
-        self.update_play_button_position()
+        if side == 'left': self.left_play_button.show()
+        elif side == 'right': self.right_play_button.show()
+        self.update_play_button_position(side)
 
-    def hide_play_button(self, event):
+    def hide_play_button(self, side):
         """
         Скрывает кнопку, когда мышь уходит.
         """
         if self.is_playing:
-            self.play_button.hide()
+            if side == 'left': self.left_play_button.hide()
+            elif side == 'right': self.right_play_button.hide()
 
-    def update_frame(self):
+    def update_frame(self, side):
         """
         Обновляет текущий кадр видео.
         """
@@ -728,22 +756,24 @@ class MainScreen(QMainWindow):
             pixmap = QPixmap.fromImage(q_img)
 
             # масштабируем изображение (кадр) под размер виджета
-            self.update_cropped_image(pixmap)
+            self.update_cropped_image(pixmap, side)
         else:
             # если видео закончилось, возвращаемся в начало
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-    def toggle_play_video(self):
+    def toggle_play_video(self, side):
         """
         Переключает воспроизведение видео (остановка\запуск).
         """
         if self.is_playing:
             self.video_timer.stop()
-            self.play_button.setText("▶")
+            if side == 'left': self.left_play_button.setText("▶")
+            elif side == 'right': self.right_play_button.setText("▶")
         else:
             fps = self.cap.get(cv2.CAP_PROP_FPS)
             self.video_timer.start(int(1000 / fps))  # обновляем с частотой кадров видео
-            self.play_button.setText("❚❚")
+            if side == 'left': self.left_play_button.setText("❚❚")
+            elif side == 'right': self.right_play_button.setText("❚❚")
         self.is_playing = not self.is_playing
 
     def view_content_video(self):
