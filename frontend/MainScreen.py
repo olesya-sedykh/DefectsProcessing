@@ -926,17 +926,17 @@ class MainScreen(QMainWindow):
         if self.file_type.currentText() == 'Обработка изображения':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
-                    result = self.processor.automatic_recovery_image(
-                        input_image_path=self.processor.input_path, 
-                        output_image_path=self.processor.output_path,
+                    processed_path = self.processor.recovery_image(
+                        processing_mode='automatic',
                         defect_mode='one_defect')
-        if result:
-            # processed_files = list(Path(OUTPUT_PATH).glob('processed_*'))
-            # if processed_files:
-            #     processed_file_path = processed_files[0]
-            # else:
-            #     print("Обработанный файл не найден")
-            #     processed_file_path = None
-            print(result)
-            self.update_display(file_path=result, close=False, side='right')
+        elif self.file_type.currentText() == 'Обработка видео':
+            if self.process_type.currentText() == 'Автоматическая обработка':
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    print('yes')
+                    processed_path = self.processor.recovery_video(
+                        processing_mode='automatic',
+                        defect_mode='one_defect')
+        if processed_path:
+            print(processed_path)
+            self.update_display(file_path=processed_path, close=False, side='right')
             
