@@ -493,7 +493,22 @@ class ProcessingClass:
         defect_mode - режим исправления дефектов, может принимать 2 значения:
             1. 'all_defects' - исправляет все дефекты на изображении
             2. 'one_defect' - исправляет 1, самый значимый дефект на изображении
+        Возвращает обработанное изображение и словарь с результами следующей структуры:
+            results = {
+                'blur': [1, 1],
+                'contrast': [0, 0],
+                'glares': [1, 0],
+                'noise': [0, 0]
+            }
         """
+        # словарь с результатами
+        results = {
+            'blur': [0, 0],
+            'contrast': [0, 0],
+            'glares': [0, 0],
+            'noise': [0, 0]
+        }
+
         def apply_methods():
             if predicted_class == 'blur': 
                 processed_image = self.unsharp_masking(input_image)
@@ -505,27 +520,47 @@ class ProcessingClass:
                 processed_image = self.adaptive_average_filter(input_image, estimate_noise='function')
             elif predicted_class == 'good':
                 processed_image = input_image.copy()
+
             return processed_image
 
         if defect_mode == 'one_defect':
             predicted_class = self.determine_class(input_image)[0]
+            print('predicted_class', predicted_class)
+            if predicted_class != 'good': results[predicted_class][0] += 1
+
             processed_image = apply_methods()
+            processed_predicted_class = self.determine_class(processed_image)[0]
+            print('processed_predicted_class', processed_predicted_class)
+            if processed_predicted_class == 'good' and predicted_class != 'good': results[predicted_class][1] += 1
+
         elif defect_mode == 'all_defects':
             defects_in_image = [] # список дефектов на картинке
             processed_image = input_image.copy()
+            
             while True:
+                uncorrected_defect = ''
                 predicted_class = self.determine_class(processed_image)[0]
                 if predicted_class in defects_in_image:
+                    uncorrected_defect = predicted_class
                     break
 
                 if predicted_class == 'good':
                     break
                 else:
                     defects_in_image.append(predicted_class)
+                    results[predicted_class][0] += 1
 
                 processed_image = apply_methods()
 
-        return processed_image
+            # все дефекты на картинке, которые есть в списке дефектов, исправлены,
+            # кроме того дефекта, который возник еще раз (uncorrected_defect)
+            for defect in defects_in_image:
+                if defect != uncorrected_defect:
+                    results[defect][1] += 1
+
+        print('back', results)
+        
+        return (processed_image, results)
 
         # return processed_image
     
@@ -584,12 +619,12 @@ class ProcessingClass:
         """
         try:
             input_image = self.__cv2_imread_unicode(self.input_path)
-            if input_image is None: return None
+            if input_image is None: return None, None
 
             if processing_mode == 'automatic':
-                processed_image = self.automatic_recovery_image(input_image, defect_mode)
+                processed_image, result = self.automatic_recovery_image(input_image, defect_mode)
             elif processing_mode == 'manual':
-                processed_image = self.manual_recovery_image(input_image, methods, defect_mode)
+                processed_image, result = self.manual_recovery_image(input_image, methods, defect_mode)
 
             # формируем необходимое название для сохранения
             original_filename = os.path.basename(self.input_path)
@@ -598,15 +633,23 @@ class ProcessingClass:
             processed_path = os.path.join(self.output_path, processed_filename)
 
             if self.__cv2_imwrite_unicode(processed_path, processed_image):
-                return processed_path
+                return processed_path, result
         except:
-            return None
+            return None, None
         
     def recovery_video(self, processing_mode, defect_mode, methods=None):
         """
         Восстановление видео.
         """
         try:
+            # словарь с результатами
+            main_results = {
+                'blur': [0, 0],
+                'contrast': [0, 0],
+                'glares': [0, 0],
+                'noise': [0, 0]
+            }
+
             print(1)
             # формируем необходимое название для сохранения
             video_name = Path(self.input_path).stem
@@ -617,7 +660,7 @@ class ProcessingClass:
             # открываем видео
             cap = cv2.VideoCapture(self.input_path)
             if not cap.isOpened():
-                return None
+                return None, None
             
             print(3)
             # получаем параметры видео
@@ -643,24 +686,37 @@ class ProcessingClass:
                 
                 # применяем выбранный метод обработки
                 if processing_mode == 'automatic':
-                    processed_frame = self.automatic_recovery_image(rgb_frame, defect_mode)
+                    processed_frame, results = self.automatic_recovery_image(rgb_frame, defect_mode)
                 elif processing_mode == 'manual':
-                    processed_frame = self.manual_recovery_image(rgb_frame, methods, defect_mode)
+                    processed_frame, results = self.manual_recovery_image(rgb_frame, methods, defect_mode)
+                
+                # обновляем словарь с результатами
+                main_results = {
+                    key: [
+                        main_results[key][0] + results[key][0], 
+                        main_results[key][1] + results[key][1]
+                    ] 
+                    for key in main_results
+                }
                 
                 # конвертируем обратно в BGR для сохранения
                 bgr_frame = cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR)
                 out.write(bgr_frame)
+
+                print('main_results', main_results)
             
             print(7)
             # освобождаем ресурсы
             cap.release()
             out.release()
+
+            print('main_results', main_results)
             
             print(8)
-            return processed_video_path
+            return (processed_video_path, main_results)
         
         except Exception as e:
-            return None
+            return None, None
 
     # def recovery_video(self, processing_mode, defect_mode, methods=None):
     #     """

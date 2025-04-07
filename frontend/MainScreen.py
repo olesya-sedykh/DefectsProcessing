@@ -45,8 +45,7 @@ class MainScreen(QMainWindow):
         self.setStyleSheet(f"background-color: {self.background_color};")
         self.center()
 
-        # потом сделать нормальный путь
-        # self.output_process_path = 'temp'
+        self.defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
 
         # шрифт
         self.font = QFont()
@@ -939,14 +938,12 @@ class MainScreen(QMainWindow):
 
     def update_methods_table(self):
         """
-        Обновляет таблицу методов с кнопками параметров для каждого метода
+        Обновляет таблицу методов с кнопками параметров для каждого метода.
         """
-        print('Режим обработки:', self.process_type.currentText())
-        
-        # Полная очистка таблицы
+        # полная очистка таблицы
         self.methods_table.clearContents()
         
-        # Стиль для кнопок шестерёнок
+        # стиль для кнопок-шестерёнок
         gear_style = """
             QPushButton {
                 border: none;
@@ -959,10 +956,9 @@ class MainScreen(QMainWindow):
             }
         """
         
-        # Заполняем таблицу
-        defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
-        for row, defect in enumerate(defects):
-            # Ячейка с дефектом (первый столбец)
+        # заполняем таблицу
+        for row, defect in enumerate(self.defects):
+            # первый столбец - название дефекта
             item = QTableWidgetItem(defect)
             item.setTextAlignment(Qt.AlignCenter)
             font = item.font()
@@ -970,19 +966,20 @@ class MainScreen(QMainWindow):
             item.setFont(font)
             self.methods_table.setItem(row, 0, item)
             
-            # Создаем контейнер для второго столбца
+            # создаем контейнер для второго столбца
             container = QWidget()
             layout = QHBoxLayout(container)
             layout.setContentsMargins(5, 0, 5, 0)
             layout.setSpacing(5)
             
-            if self.process_type.currentIndex() == 0:  # Автоматический режим
-                # Метод обработки
+            # для автоматического режима
+            if self.process_type.currentIndex() == 0:
+                # метод обработки
                 method_label = QLabel(self.automatic_methods[row])
                 method_label.setAlignment(Qt.AlignCenter)
                 layout.addWidget(method_label, stretch=1)
                 
-                # Кнопка шестерёнки (только просмотр)
+                # кнопка шестерёнки (только просмотр)
                 gear_btn = QPushButton()
                 gear_btn.setText("⚙")
                 gear_btn.setFont(QFont("Arial", 10))
@@ -990,16 +987,17 @@ class MainScreen(QMainWindow):
                 gear_btn.setStyleSheet(gear_style)
                 gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, False))
                 layout.addWidget(gear_btn)
-                
-            else:  # Ручной режим
-                # Выпадающий список методов
+
+            # для ручного режима   
+            else:
+                # выпадающий список методов
                 combo = QComboBox()
                 combo.addItems(self.manual_options[defect])
                 combo.setCurrentIndex(0)
                 combo.setStyleSheet("QComboBox { padding: 2px; }")
                 layout.addWidget(combo, stretch=1)
                 
-                # Кнопка шестерёнки (редактирование)
+                # кнопка шестерёнки (редактирование)
                 gear_btn = QPushButton()
                 gear_btn.setText("⚙")
                 gear_btn.setFont(QFont("Arial", 10))
@@ -1008,12 +1006,12 @@ class MainScreen(QMainWindow):
                 gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, True))
                 layout.addWidget(gear_btn)
             
-            # Устанавливаем контейнер в таблицу
+            # устанавливаем контейнер в таблицу
             self.methods_table.setCellWidget(row, 1, container)
         
-        # Настройки внешнего вида таблицы
+        # настройки внешнего вида таблицы
         self.methods_table.resizeRowsToContents()
-        self.methods_table.setMinimumHeight(160)  # Минимальная высота для 4 строк
+        self.methods_table.setMinimumHeight(160)  # минимальная высота для 4 строк
 
     def show_parameters(self, row, editable):
         """Shows parameters dialog for the selected method"""
@@ -1032,6 +1030,49 @@ class MainScreen(QMainWindow):
             # Save changed parameters for manual processing
             self.method_parameters[method_name] = dialog.get_parameters()
 
+    
+    def update_results_table(self):
+        """
+        Обновляет таблицу результатов в соответствии с полученным 
+        с бэкенда словарем.
+        """
+        if hasattr(self, 'result'):
+            # полная очистка таблицы
+            self.results_table.clearContents()
+
+            defect_mapping = {
+                'blur': "Размытие",
+                'contrast': "Низкая контрастность",
+                'glares': "Блики",
+                'noise': "Шум"
+            }
+            
+            # заполняем таблицу
+            for row, defect_ru in enumerate(self.defects):
+                # находим английский ключ для этого дефекта
+                defect_en = next(key for key, value in defect_mapping.items() if value == defect_ru)
+                
+                # получаем значения для этого дефекта
+                detected, fixed = self.result.get(defect_en, [0, 0])
+                
+                # создаем ячейки
+                item_defect = QTableWidgetItem(defect_ru)
+                item_detected = QTableWidgetItem(str(detected))
+                item_fixed = QTableWidgetItem(str(fixed))
+                
+                # устанавливаем выравнивание по центру
+                for item in [item_defect, item_detected, item_fixed]:
+                    item.setTextAlignment(Qt.AlignCenter)
+                
+                # добавляем ячейки в таблицу
+                self.results_table.setItem(row, 0, item_defect)
+                self.results_table.setItem(row, 1, item_detected)
+                self.results_table.setItem(row, 2, item_fixed)
+            
+            # настройки внешнего вида таблицы
+            self.methods_table.resizeRowsToContents()
+            self.methods_table.setMinimumHeight(160)  # минимальная высота для 4 строк
+
 
     # =========================================================================
     # ИСПРАВЛЕНИЕ ДЕФЕКТОВ
@@ -1041,17 +1082,28 @@ class MainScreen(QMainWindow):
         if self.file_type.currentText() == 'Обработка изображения':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
-                    self.processed_path = self.processor.recovery_image(
+                    self.processed_path, self.result = self.processor.recovery_image(
                         processing_mode='automatic',
                         defect_mode='one_defect')
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    self.processed_path, self.result = self.processor.recovery_image(
+                        processing_mode='automatic',
+                        defect_mode='all_defects')
         elif self.file_type.currentText() == 'Обработка видео':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
                     print('yes')
-                    self.processed_path = self.processor.recovery_video(
+                    self.processed_path, self.result = self.processor.recovery_video(
                         processing_mode='automatic',
                         defect_mode='one_defect')
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    print('yes')
+                    self.processed_path, self.result = self.processor.recovery_video(
+                        processing_mode='automatic',
+                        defect_mode='all_defects')
         if self.processed_path:
             print(self.processed_path)
+            print(self.result)
             self.update_display(file_path=self.processed_path, close=False, side='right')
+            self.update_results_table()
             
