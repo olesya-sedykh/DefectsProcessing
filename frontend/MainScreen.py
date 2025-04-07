@@ -37,7 +37,7 @@ class MainScreen(QMainWindow):
 
         self.title = "Исправление дефектов"
         self.width = 1200
-        self.height = 800
+        self.height = 900
         self.background_color = 'white'
 
         self.setWindowTitle(self.title)
@@ -58,6 +58,8 @@ class MainScreen(QMainWindow):
 
         # горизонтальный layout для разделения на левую и правую части
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)  # отступы по краям
+        main_layout.setSpacing(10)  # расстояние между элементами
 
         # =========================================================================
         # ЛЕВАЯ СТОРОНА
@@ -66,6 +68,7 @@ class MainScreen(QMainWindow):
         # левая часть
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
+        left_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # выпадающий список для выбора вида обрабатываемого файла
         self.file_type = QComboBox()
@@ -82,13 +85,23 @@ class MainScreen(QMainWindow):
         self.file_widget = QWidget()
         self.file_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
         # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.file_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.file_layout = QVBoxLayout(self.file_widget)
         left_layout.addWidget(self.file_widget)
         # left_layout.addStretch(60)
 
         # кнопка загрузки
         self.create_load_button()
+
+        # кнопка для скачивания исходной размеченной картинки
+        self.download_detect_button = QPushButton("Скачать размеченное изображение")
+        self.download_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.download_detect_button.setFixedHeight(40)
+        self.download_detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_detect_button.setFont(self.font)
+        # self.process_button.clicked.connect(self.detect_objects)
+        left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
         self.defects_processing_type = QComboBox()
@@ -220,27 +233,35 @@ class MainScreen(QMainWindow):
             }
         }
         
-        print("Before update")
         self.update_methods_table()
-        print("After update")
 
         left_layout.addWidget(self.methods_table)
 
         # кнопка для обработки дефектов
         self.process_button = QPushButton("Исправить дефекты")
         self.process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.process_button.setFixedHeight(40)
         self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.process_button.setFont(self.font)
         self.process_button.clicked.connect(self.processing)
         left_layout.addWidget(self.process_button)
 
         # распределение размеров элементов по высоте для левой стороны
-        left_layout.setStretch(0, 10)
-        left_layout.setStretch(1, 35)  # 30% для file_widget (первый добавленный элемент)
-        left_layout.setStretch(2, 10)   # 5% для defects_processing_type
-        left_layout.setStretch(3, 10)   # 5% для process_type
-        left_layout.setStretch(4, 25)  # 60% для methods_table
-        left_layout.setStretch(5, 10)
+        left_layout.setStretch(0, 1)   # file_type (выпадающий список)
+        left_layout.setStretch(1, 5)   # file_widget (область загрузки)
+        left_layout.setStretch(2, 1)   # download_detect_button
+        left_layout.setStretch(3, 1)   # defects_processing_type
+        left_layout.setStretch(4, 1)   # process_type
+        left_layout.setStretch(5, 3)   # methods_table
+        left_layout.setStretch(6, 1)   # process_button
+
+        # left_layout.setStretch(0, 10)
+        # left_layout.setStretch(1, 25)  # 30% для file_widget (первый добавленный элемент)
+        # left_layout.setStretch(2, 10)
+        # left_layout.setStretch(3, 10)   # 5% для defects_processing_type
+        # left_layout.setStretch(4, 10)   # 5% для process_type
+        # left_layout.setStretch(5, 25)  # 60% для methods_table
+        # left_layout.setStretch(6, 10)
 
         main_layout.addWidget(left_widget, stretch=50)
 
@@ -256,22 +277,110 @@ class MainScreen(QMainWindow):
         # правая сторона
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
+        right_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # заголовок
         self.process_title = QLabel("Результат обработки")
-        # self.process_title.setText("Результат обработки")
+        self.process_title.setAlignment(Qt.AlignCenter)
         self.process_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_title.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.process_title.setFont(self.font)
         right_layout.addWidget(self.process_title)
 
+        # область отображения результата обработки
         self.result_widget = QWidget()
         self.result_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
-        self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        # self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.result_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.result_layout = QVBoxLayout(self.result_widget)
         right_layout.addWidget(self.result_widget)
 
-        right_layout.setStretch(0, 10)
-        right_layout.setStretch(1, 35)
+        # таблица с результатами обработки
+        self.results_table = QTableWidget()
+        self.results_table.setRowCount(4)
+        self.results_table.setColumnCount(3)
+        self.results_table.setHorizontalHeaderLabels(["", "Обнаружено", "Исправлено"])
+        self.results_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # растяжение столбцов по ширине таблицы
+        self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.results_table.horizontalHeader().setStretchLastSection(True)
+        self.results_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.results_table.verticalHeader().setVisible(False)
+        self.results_table.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.results_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
+        self.results_table.setStyleSheet("""
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                border: 1px solid #d0d0d0;
+                padding: 5px;
+                font-weight: bold;
+            }
+            QTableWidget {
+                gridline-color: #d0d0d0;
+            }
+        """)
+        self.results_table.setShowGrid(True)
+        self.results_table.setGridStyle(Qt.SolidLine)
+        self.results_table.resizeRowsToContents()
+        # self.update_results_table()
+        right_layout.addWidget(self.results_table)
+
+        # кнопка для обнаружения объектов
+        self.detect_button = QPushButton("Найти объекты")
+        self.detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.detect_button.setFixedHeight(40)
+        self.detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.detect_button.setFont(self.font)
+        # self.process_button.clicked.connect(self.detect_objects)
+        right_layout.addWidget(self.detect_button)
+
+        # создаем контейнер под кнопки скачивания
+        right_download_buttons_widget = QWidget()
+        right_download_buttons_layout = QHBoxLayout(right_download_buttons_widget)
+        right_download_buttons_layout.setContentsMargins(0, 0, 0, 0)  # убираем отступы
+        right_download_buttons_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        # кнопка для скачивания обработанной картинки
+        self.download_process_button = QPushButton("Скачать\nобработанное\nизображение")
+        self.download_process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.download_process_button.setFixedHeight(100)
+        self.download_process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_process_button.setFont(self.font)
+        # self.process_button.clicked.connect(self.detect_objects)
+        right_download_buttons_layout.addWidget(self.download_process_button)
+
+        # кнопка для скачивания обработанной и размеченной картинки
+        self.download_process_detect_button = QPushButton("Скачать\nразмеченное\nизображение")
+        self.download_process_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.download_process_detect_button.setFixedHeight(100)
+        self.download_process_detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_process_detect_button.setFont(self.font)
+        # self.process_button.clicked.connect(self.detect_objects)
+        right_download_buttons_layout.addWidget(self.download_process_detect_button)
+
+        right_layout.addWidget(right_download_buttons_widget)
+
+        # кнопка для параллельного просмотра исходной версии и итоговой
+        self.compare_button = QPushButton("Сравнить с исходным")
+        self.compare_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.compare_button.setFixedHeight(40)
+        self.compare_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.compare_button.setFont(self.font)
+        # self.process_button.clicked.connect(self.detect_objects)
+        right_layout.addWidget(self.compare_button)
+
+        # right_layout.setStretch(0, 10)
+        # right_layout.setStretch(1, 26)
+        # right_layout.setStretch(2, 24)
+        # right_layout.setStretch(3, 10)
+        # right_layout.setStretch(4, 20)
+        # right_layout.setStretch(4, 10)
+        right_layout.setStretch(0, 1)  # process_title
+        right_layout.setStretch(1, 6)  # result_widget (область результата)
+        right_layout.setStretch(2, 4)  # results_table
+        right_layout.setStretch(3, 1)  # detect_button
+        right_layout.setStretch(4, 1)  # download_buttons_widget
+        right_layout.setStretch(5, 1)  # compare_button
 
         main_layout.addWidget(right_widget, stretch=50)
 
