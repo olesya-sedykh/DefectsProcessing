@@ -407,9 +407,13 @@ class MainScreen(QMainWindow):
             }
         """)
         if type == 'image':
-            view_button.clicked.connect(self.view_content_image)
+            view_button.clicked.connect(lambda: self.view_content_image(side))
         elif type == 'video':
-            view_button.clicked.connect(self.view_content_video)
+            view_button.clicked.connect(lambda: self.view_content_video(side))
+        # if type == 'image':
+        #     view_button.clicked = lambda: self.view_content_image(side)
+        # elif type == 'video':
+        #     view_button.clicked = lambda: self.view_content_video(side)
         overlay_layout.addWidget(view_button)
         
         # кнопка закрытия (крестик)
@@ -602,13 +606,18 @@ class MainScreen(QMainWindow):
         # обновляем позицию кнопок
         self.update_buttons_position()
 
-    def view_content_image(self):
+    def view_content_image(self, side):
         """
         Открывает окно просмотра с полным изображением.
         """
-        if hasattr(self, 'file_path') and self.file_path:
-            self.preview_window = PreviewWindowImage(self.file_path)
-            self.preview_window.show()
+        if side == 'left': 
+            if hasattr(self, 'file_path') and self.file_path:
+                self.preview_window = PreviewWindowImage(self.file_path)
+                self.preview_window.show()
+        elif side == 'right': 
+            if hasattr(self, 'processed_path') and self.processed_path:
+                self.preview_window = PreviewWindowImage(self.processed_path)
+                self.preview_window.show()
 
     # =========================================================================
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ВИДЕО
@@ -703,14 +712,6 @@ class MainScreen(QMainWindow):
                 y = (self.right_show_label.height() - self.right_play_button.height()) // 2
                 self.right_play_button.move(x, y)
 
-        # print(show_label.width())
-        # print(play_button.width())
-
-        # if hasattr(self, 'play_button'):
-        #     x = (show_label.width() - play_button.width()) // 2
-        #     y = (show_label.height() - play_button.height()) // 2
-        #     play_button.move(x, y)
-
     def update_video_display(self, side):
         """
         Обработчик изменения размера видео (или окна).
@@ -776,14 +777,19 @@ class MainScreen(QMainWindow):
             elif side == 'right': self.right_play_button.setText("❚❚")
         self.is_playing = not self.is_playing
 
-    def view_content_video(self):
+    def view_content_video(self, side):
         """
         Открывает окно просмотра с полным видео.
         """
-        if hasattr(self, 'file_path') and self.file_path:
-            self.preview_window = PreviewWindowVideo(self.file_path)
-            self.preview_window.show()
-
+        if side == 'left': 
+            if hasattr(self, 'file_path') and self.file_path:
+                self.preview_window = PreviewWindowVideo(self.file_path)
+                self.preview_window.show()
+        elif side == 'right': 
+            if hasattr(self, 'processed_path') and self.processed_path:
+                self.preview_window = PreviewWindowVideo(self.processed_path)
+                self.preview_window.show()
+        
 
     # def update_methods_table(self):
     #     """
@@ -926,17 +932,17 @@ class MainScreen(QMainWindow):
         if self.file_type.currentText() == 'Обработка изображения':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
-                    processed_path = self.processor.recovery_image(
+                    self.processed_path = self.processor.recovery_image(
                         processing_mode='automatic',
                         defect_mode='one_defect')
         elif self.file_type.currentText() == 'Обработка видео':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
                     print('yes')
-                    processed_path = self.processor.recovery_video(
+                    self.processed_path = self.processor.recovery_video(
                         processing_mode='automatic',
                         defect_mode='one_defect')
-        if processed_path:
-            print(processed_path)
-            self.update_display(file_path=processed_path, close=False, side='right')
+        if self.processed_path:
+            print(self.processed_path)
+            self.update_display(file_path=self.processed_path, close=False, side='right')
             
