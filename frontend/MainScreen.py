@@ -156,14 +156,14 @@ class MainScreen(QMainWindow):
         self.automatic_methods = [
             "Фильтр Лапласа",
             "Алгоритм CLAHE",
-            "Адаптивный метод",
-            "Фильтр среднего значения"
+            "Адаптивное восстановление",
+            "Нелокальное среднее"
         ]
         
         # методы для ручной обработки
         self.manual_options = {
             "Размытие": ["Фильтр Лапласа", "Повышение резкости"],
-            "Низкая контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
+            "Контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
             "Блики": ["Восстановление с помощью маски", "Адаптивное восстановление"],
             "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса", "Вейвлет-обработка", "Нелокальное среднее"]
         }
@@ -180,50 +180,54 @@ class MainScreen(QMainWindow):
             },
 
             "Гистограммное выравнивание": {
-                "color_space": "hsv"
+                "color_space": ["hsv", "yuv"]
             },
             "Алгоритм CLAHE": {
-                "color_space": "hsv", 
+                "color_space": ['hsv', 'rgb', 'yuv'], 
                 "clip_limit": 6.5, 
                 "tile_grid_size": (12, 12)
             },
 
             "Восстановление с помощью маски": {
-                "mask_mode": "brightness", 
-                "color_space_mask": "hsv",
-                "color_space": "yuv",
+                "mask_mode": ['brightness', 'gradient', 'combine'], 
+                "color_space_mask": ['hsv', 'gray', 'yuv'],
+                "color_space": ['yuv', 'rgb', 'hsv'],
                 "threshold": 160,
                 "inpaint_radius": 3,
-                "inpaint_method": "inpaint_ns"
+                "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
+                'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                'gradient_threshold': 100
             },
             "Адаптивное восстановление": {
-                "mask_mode": "brightness",
-                "color_space_mask": "hsv",
-                "color_space": "yuv",
-                "adaptive_method": 1,
+                "mask_mode": ['brightness', 'gradient', 'combine'],
+                "color_space_mask": ['hsv', 'gray', 'yuv'],
+                "color_space": ['yuv', 'rgb', 'hsv'],
+                "adaptive_method": ['gaussian', 'mean'],
                 "block_size": 7,
                 "C": 5,
                 "inpaint_radius": 3,
-                "inpaint_method": "inpaint_ns"
+                "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
+                'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                'gradient_threshold': 100
             },
 
             "Фильтр среднего значения": {
-                "estimate_noise": 'function', 
+                "estimate_noise": ['function', 'gaussian'], 
                 "sigma": 3
             },
             "Медианный фильтр": {
-                "estimate_noise": 'function', 
+                "estimate_noise": ['function', 'gaussian'], 
                 "sigma": 3
             },
             "Фильтр Гаусса": {
-                "estimate_noise": 'function', 
+                "estimate_noise": ['function', 'gaussian'], 
                 "sigma": 3
             },
             "Вейвлет-обработка": {
-                "type": "haar", 
-                "mode": "soft", 
+                "type": ['haar', 'db2', 'db4', 'sym2', 'bior1.3'], 
+                "mode": ['hard', 'soft'], 
                 "number_of_levels": 3, 
-                "estimate_noise": "function", 
+                "estimate_noise": ['function', 'gaussian', 'wavelet'], 
                 "sigma": 3
             },
             "Нелокальное среднее": {
@@ -933,44 +937,11 @@ class MainScreen(QMainWindow):
             if hasattr(self, 'processed_path') and self.processed_path:
                 self.preview_window = PreviewWindowVideo(self.processed_path)
                 self.preview_window.show()
-        
 
-    # def update_methods_table(self):
-    #     """
-    #     Обновляет заполнение таблицы.
-    #     """
-    #     processing_type = self.process_type.currentText()
-    #     print('processing_type', processing_type)
 
-    #     # полное очищение таблицы перед новым заполнением
-    #     self.methods_table.clearContents()
-
-    #     # заполнение строк таблицы дефектами
-    #     defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
-    #     for row, defect in enumerate(defects):
-    #         item = QTableWidgetItem(defect) # создание ячейки
-    #         item.setTextAlignment(Qt.AlignCenter) # выравнивание ячейки
-    #         font = item.font()
-    #         font.setBold(True)  # делаем текст жирным
-    #         item.setFont(font)
-    #         self.methods_table.setItem(row, 0, item) # помещение ячейки в таблицу в строку row, столбец 0
-        
-    #     for row in range(self.methods_table.rowCount()):
-    #         # в случае автоматической обработки просто показываем названия методов
-    #         if self.process_type.currentIndex() == 0:
-    #             method_item = QTableWidgetItem(self.automatic_methods[row])
-    #             method_item.setTextAlignment(Qt.AlignCenter)
-    #             self.methods_table.setItem(row, 1, method_item)
-            
-    #         # в случае ручной обработки для каждого дефекта можно выбрать метод
-    #         else:
-    #             defect = self.methods_table.item(row, 0).text()
-    #             combo = QComboBox()
-    #             combo.addItems(self.manual_options[defect])
-    #             combo.setCurrentIndex(0)
-    #             self.methods_table.setCellWidget(row, 1, combo)
-        
-    #     self.methods_table.resizeRowsToContents()
+    # =========================================================================
+    # ФУНКЦИИ ДЛЯ ЗАПОЛНЕНИЯ ТАБЛИЦ
+    # =========================================================================
 
     def update_methods_table(self):
         """
@@ -1007,6 +978,13 @@ class MainScreen(QMainWindow):
             layout = QHBoxLayout(container)
             layout.setContentsMargins(5, 0, 5, 0)
             layout.setSpacing(5)
+
+            # кнопка шестеренки
+            gear_btn = QPushButton()
+            gear_btn.setText("⚙")
+            gear_btn.setFont(QFont("Arial", 10))
+            gear_btn.setFixedSize(24, 24)
+            gear_btn.setStyleSheet(gear_style)
             
             # для автоматического режима
             if self.process_type.currentIndex() == 0:
@@ -1016,11 +994,6 @@ class MainScreen(QMainWindow):
                 layout.addWidget(method_label, stretch=1)
                 
                 # кнопка шестерёнки (только просмотр)
-                gear_btn = QPushButton()
-                gear_btn.setText("⚙")
-                gear_btn.setFont(QFont("Arial", 10))
-                gear_btn.setFixedSize(24, 24)
-                gear_btn.setStyleSheet(gear_style)
                 gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, False))
                 layout.addWidget(gear_btn)
 
@@ -1034,11 +1007,6 @@ class MainScreen(QMainWindow):
                 layout.addWidget(combo, stretch=1)
                 
                 # кнопка шестерёнки (редактирование)
-                gear_btn = QPushButton()
-                gear_btn.setText("⚙")
-                gear_btn.setFont(QFont("Arial", 10))
-                gear_btn.setFixedSize(24, 24)
-                gear_btn.setStyleSheet(gear_style)
                 gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, True))
                 layout.addWidget(gear_btn)
             
@@ -1047,24 +1015,28 @@ class MainScreen(QMainWindow):
         
         # настройки внешнего вида таблицы
         self.methods_table.resizeRowsToContents()
-        self.methods_table.setMinimumHeight(160)  # минимальная высота для 4 строк
+        self.methods_table.setMinimumHeight(160)
 
     def show_parameters(self, row, editable):
-        """Shows parameters dialog for the selected method"""
-        defect = self.methods_table.item(row, 0).text()
-        
+        """
+        Открывает диалоговое окошко для просмотра или ввода параметров.
+        """       
         if self.process_type.currentText() == "Автоматическая обработка":
             method_name = self.automatic_methods[row]
         else:
             combo = self.methods_table.cellWidget(row, 1).findChild(QComboBox)
             method_name = combo.currentText()
         
+        # Всегда используем текущие сохраненные параметры (если они есть)
         parameters = self.method_parameters.get(method_name, {}).copy()
         
         dialog = ParameterDialog(method_name, parameters, editable)
         if dialog.exec_() == QDialog.Accepted and editable:
-            # Save changed parameters for manual processing
+            # Сохраняем новые параметры только если было редактирование
             self.method_parameters[method_name] = dialog.get_parameters()
+        elif not editable:
+            # Для просмотра просто показываем текущие сохраненные параметры
+            pass
 
     
     def update_results_table(self):
@@ -1107,7 +1079,6 @@ class MainScreen(QMainWindow):
             
             # настройки внешнего вида таблицы
             self.methods_table.resizeRowsToContents()
-            self.methods_table.setMinimumHeight(160)  # минимальная высота для 4 строк
 
 
     # =========================================================================
