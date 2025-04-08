@@ -45,7 +45,7 @@ class MainScreen(QMainWindow):
         self.setStyleSheet(f"background-color: {self.background_color};")
         self.center()
 
-        self.defects = ["Размытие", "Низкая контрастность", "Блики", "Шум"]
+        self.defects = ["Размытие", "Контрастность", "Блики", "Шум"]
 
         # шрифт
         self.font = QFont()
@@ -74,8 +74,8 @@ class MainScreen(QMainWindow):
         self.file_type.addItem("Обработка изображения")
         self.file_type.addItem("Обработка датасета")
         self.file_type.addItem("Обработка видео")
-        # self.file_type.setFixedHeight(40)
-        self.file_type.setMinimumHeight(40)
+        self.file_type.setFixedHeight(40)
+        # self.file_type.setMinimumHeight(40)
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(self.font)
         left_layout.addWidget(self.file_type)
@@ -86,6 +86,7 @@ class MainScreen(QMainWindow):
         # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.file_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.file_widget.setMinimumHeight(200)
         self.file_layout = QVBoxLayout(self.file_widget)
         left_layout.addWidget(self.file_widget)
         # left_layout.addStretch(60)
@@ -106,8 +107,8 @@ class MainScreen(QMainWindow):
         self.defects_processing_type = QComboBox()
         self.defects_processing_type.addItem("Исправить все дефекты")
         self.defects_processing_type.addItem("Исправить основной дефект")
-        # self.defects_processing_type.setFixedHeight(40)
-        self.defects_processing_type.setMinimumHeight(40)
+        self.defects_processing_type.setFixedHeight(40)
+        # self.defects_processing_type.setMinimumHeight(40)
         self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.defects_processing_type.setFont(self.font)
         left_layout.addWidget(self.defects_processing_type)
@@ -282,6 +283,7 @@ class MainScreen(QMainWindow):
         self.process_title = QLabel("Результат обработки")
         self.process_title.setAlignment(Qt.AlignCenter)
         self.process_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.process_title.setFixedHeight(40)
         self.process_title.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
         self.process_title.setFont(self.font)
         right_layout.addWidget(self.process_title)
@@ -291,6 +293,7 @@ class MainScreen(QMainWindow):
         self.result_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
         # self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.result_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.result_widget.setMinimumHeight(200)
         self.result_layout = QVBoxLayout(self.result_widget)
         right_layout.addWidget(self.result_widget)
 
@@ -320,6 +323,7 @@ class MainScreen(QMainWindow):
         """)
         self.results_table.setShowGrid(True)
         self.results_table.setGridStyle(Qt.SolidLine)
+        self.results_table.setMinimumHeight(265)
         self.results_table.resizeRowsToContents()
         # self.update_results_table()
         right_layout.addWidget(self.results_table)
@@ -360,13 +364,13 @@ class MainScreen(QMainWindow):
         right_layout.addWidget(right_download_buttons_widget)
 
         # кнопка для параллельного просмотра исходной версии и итоговой
-        self.compare_button = QPushButton("Сравнить с исходным")
-        self.compare_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.compare_button.setFixedHeight(40)
-        self.compare_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
-        self.compare_button.setFont(self.font)
-        # self.process_button.clicked.connect(self.detect_objects)
-        right_layout.addWidget(self.compare_button)
+        # self.compare_button = QPushButton("Сравнить с исходным")
+        # self.compare_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # self.compare_button.setFixedHeight(40)
+        # self.compare_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        # self.compare_button.setFont(self.font)
+        # # self.process_button.clicked.connect(self.detect_objects)
+        # right_layout.addWidget(self.compare_button)
 
         # right_layout.setStretch(0, 10)
         # right_layout.setStretch(1, 26)
@@ -379,7 +383,7 @@ class MainScreen(QMainWindow):
         right_layout.setStretch(2, 4)  # results_table
         right_layout.setStretch(3, 1)  # detect_button
         right_layout.setStretch(4, 1)  # download_buttons_widget
-        right_layout.setStretch(5, 1)  # compare_button
+        # right_layout.setStretch(5, 1)  # compare_button
 
         main_layout.addWidget(right_widget, stretch=50)
 
@@ -581,6 +585,8 @@ class MainScreen(QMainWindow):
     def clear(self):
         """
         Удаляет отображаемый файл из области по кнопке закрытия.
+        Так как пользователь может закрыть только исходный файл, то есть левый,
+        здесь используются объекты конкретно левой стороны.
         """
         # освобождаем ресурсы из-под объекта-обработчика
         if hasattr(self, 'processor'):
@@ -588,12 +594,12 @@ class MainScreen(QMainWindow):
             del self.processor
 
         # останавливаем таймер, если он существует
-        if hasattr(self, 'video_timer') and self.video_timer:
-            self.video_timer.stop()
+        if hasattr(self, 'left_video_timer') and self.left_video_timer:
+            self.left_video_timer.stop()
         
         # освобождаем ресурсы VideoCapture, если есть
-        if hasattr(self, 'cap') and self.cap:
-            self.cap.release()
+        if hasattr(self, 'cap') and self.left_cap:
+            self.left_cap.release()
 
         # удаляем виджеты из области отображения файлов
         if hasattr(self, 'file_layout'):
@@ -745,8 +751,8 @@ class MainScreen(QMainWindow):
             return
         
         # загружаем видео с помощью OpenCV VideoCapture
-        self.cap = cv2.VideoCapture(file_path)
-        if not self.cap.isOpened():
+        cap = cv2.VideoCapture(file_path)
+        if not cap.isOpened():
             error_widget = QLabel()
             error_widget.setText("Ошибка: не удалось открыть видео")
             error_widget.setStyleSheet("color: red;")
@@ -761,12 +767,22 @@ class MainScreen(QMainWindow):
         self.create_service_buttons('video', close=close, side=side)
 
         # таймер для обновления кадров
-        self.video_timer = QTimer()
-        self.video_timer.timeout.connect(lambda: self.update_frame(side))
-        self.is_playing = False
+        video_timer = QTimer()
+        is_playing = False
 
-        if side == 'left': show_label = self.left_show_label
-        elif side == 'right': show_label = self.right_show_label
+        # для левой и правой стороны создаем свой видео-объект, таймер и флаг для запуска/остановки
+        if side == 'left':
+            self.left_cap = cap
+            self.left_video_timer = video_timer
+            self.left_is_playing = is_playing
+            show_label = self.left_show_label
+        elif side == 'right':
+            self.right_cap = cap
+            self.right_video_timer = video_timer
+            self.right_is_playing = is_playing
+            show_label = self.right_show_label
+
+        video_timer.timeout.connect(lambda: self.update_frame(side))
         
         # центральная кнопка воспроизведения
         play_button = QPushButton("▶", show_label)
@@ -847,15 +863,21 @@ class MainScreen(QMainWindow):
         """
         Скрывает кнопку, когда мышь уходит.
         """
-        if self.is_playing:
-            if side == 'left': self.left_play_button.hide()
-            elif side == 'right': self.right_play_button.hide()
+        if side == 'left': 
+            if self.left_is_playing:
+                self.left_play_button.hide()
+        elif side == 'right':
+            if self.right_is_playing: 
+                self.right_play_button.hide()
 
     def update_frame(self, side):
         """
         Обновляет текущий кадр видео.
         """
-        ret, frame = self.cap.read()
+        if side == 'left': cap = self.left_cap
+        elif side == 'right': cap = self.right_cap
+
+        ret, frame = cap.read()
         if ret:
             # конвертируем кадр из BGR (OpenCV) в RGB (Qt)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -868,22 +890,36 @@ class MainScreen(QMainWindow):
             self.update_cropped_image(pixmap, side)
         else:
             # если видео закончилось, возвращаемся в начало
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     def toggle_play_video(self, side):
         """
         Переключает воспроизведение видео (остановка\запуск).
         """
-        if self.is_playing:
-            self.video_timer.stop()
-            if side == 'left': self.left_play_button.setText("▶")
-            elif side == 'right': self.right_play_button.setText("▶")
+        if side == 'left':
+            is_playing = self.left_is_playing
+            video_timer = self.left_video_timer
+            cap = self.left_cap
+            play_button = self.left_play_button
         else:
-            fps = self.cap.get(cv2.CAP_PROP_FPS)
-            self.video_timer.start(int(1000 / fps))  # обновляем с частотой кадров видео
-            if side == 'left': self.left_play_button.setText("❚❚")
-            elif side == 'right': self.right_play_button.setText("❚❚")
-        self.is_playing = not self.is_playing
+            is_playing = self.right_is_playing
+            video_timer = self.right_video_timer
+            cap = self.right_cap
+            play_button = self.right_play_button
+
+        if is_playing:
+            video_timer.stop()
+            play_button.setText("▶")
+        else:
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            video_timer.start(int(1000 / fps))
+            play_button.setText("❚❚")
+        
+        # обновляем флаг состояния
+        if side == 'left':
+            self.left_is_playing = not is_playing
+        else:
+            self.right_is_playing = not is_playing
 
     def view_content_video(self, side):
         """
@@ -1042,7 +1078,7 @@ class MainScreen(QMainWindow):
 
             defect_mapping = {
                 'blur': "Размытие",
-                'contrast': "Низкая контрастность",
+                'contrast': "Контрастность",
                 'glares': "Блики",
                 'noise': "Шум"
             }
