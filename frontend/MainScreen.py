@@ -96,7 +96,6 @@ class MainScreen(QMainWindow):
         self.file_type.addItem("Обработка датасета")
         self.file_type.addItem("Обработка видео")
         self.file_type.setFixedHeight(45)
-        # self.file_type.setMinimumHeight(40)
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(self.font)
         left_layout.addWidget(self.file_type)
@@ -111,13 +110,10 @@ class MainScreen(QMainWindow):
                 border: 2px solid #96C896;
             }
         """)
-        # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.file_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.file_widget.setMinimumHeight(200)
         self.file_layout = QVBoxLayout(self.file_widget)
         left_layout.addWidget(self.file_widget)
-        # left_layout.addStretch(60)
 
         # кнопка загрузки
         self.create_load_button()
@@ -128,8 +124,6 @@ class MainScreen(QMainWindow):
         self.download_detect_button.setFixedHeight(50)
         self.download_detect_button.setStyleSheet(self.buttons_style)
         self.download_detect_button.setFont(self.font)
-        # self.process_button.clicked.connect(self.detect_objects)
-        # self.download_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
         left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
@@ -137,7 +131,6 @@ class MainScreen(QMainWindow):
         self.defects_processing_type.addItem("Исправить все дефекты")
         self.defects_processing_type.addItem("Исправить основной дефект")
         self.defects_processing_type.setFixedHeight(45)
-        # self.defects_processing_type.setMinimumHeight(40)
         self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.defects_processing_type.setFont(self.font)
         left_layout.addWidget(self.defects_processing_type)
@@ -146,7 +139,6 @@ class MainScreen(QMainWindow):
         self.process_type = QComboBox()
         self.process_type.addItem("Автоматическая обработка")
         self.process_type.addItem("Ручная обработка")
-        # self.process_type.setFixedHeight(40)
         self.process_type.setMinimumHeight(45)
         self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_type.setFont(self.font)
@@ -163,7 +155,6 @@ class MainScreen(QMainWindow):
         self.methods_table.horizontalHeader().setStretchLastSection(True)
         self.methods_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.methods_table.verticalHeader().setVisible(False)
-        # self.methods_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.methods_table.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.methods_table.setEditTriggers(QTableWidget.NoEditTriggers) # запрет редактирования
         self.methods_table.setStyleSheet("""
@@ -288,14 +279,6 @@ class MainScreen(QMainWindow):
         left_layout.setStretch(5, 3)   # methods_table
         left_layout.setStretch(6, 1)   # process_button
 
-        # left_layout.setStretch(0, 10)
-        # left_layout.setStretch(1, 25)  # 30% для file_widget (первый добавленный элемент)
-        # left_layout.setStretch(2, 10)
-        # left_layout.setStretch(3, 10)   # 5% для defects_processing_type
-        # left_layout.setStretch(4, 10)   # 5% для process_type
-        # left_layout.setStretch(5, 25)  # 60% для methods_table
-        # left_layout.setStretch(6, 10)
-
         main_layout.addWidget(left_widget, stretch=50)
 
         # разделитель между левой и правой частью
@@ -337,7 +320,6 @@ class MainScreen(QMainWindow):
                 border: 2px solid #96C896;
             }
         """)
-        # self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.result_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.result_widget.setMinimumHeight(200)
         self.result_layout = QVBoxLayout(self.result_widget)
@@ -371,7 +353,6 @@ class MainScreen(QMainWindow):
         self.results_table.setGridStyle(Qt.SolidLine)
         self.results_table.setMinimumHeight(270)
         self.results_table.resizeRowsToContents()
-        # self.update_results_table()
         right_layout.addWidget(self.results_table)
 
         # кнопка для обнаружения объектов
@@ -380,7 +361,6 @@ class MainScreen(QMainWindow):
         self.detect_button.setFixedHeight(50)
         self.detect_button.setStyleSheet(self.buttons_style)
         self.detect_button.setFont(self.font)
-        # self.detect_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_layout.addWidget(self.detect_button)
 
@@ -396,7 +376,6 @@ class MainScreen(QMainWindow):
         self.download_process_button.setFixedHeight(100)
         self.download_process_button.setStyleSheet(self.buttons_style)
         self.download_process_button.setFont(self.font)
-        # self.download_process_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_button)
 
@@ -406,7 +385,6 @@ class MainScreen(QMainWindow):
         self.download_process_detect_button.setFixedHeight(100)
         self.download_process_detect_button.setStyleSheet(self.buttons_style)
         self.download_process_detect_button.setFont(self.font)
-        # self.download_process_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_detect_button)
 
@@ -421,12 +399,6 @@ class MainScreen(QMainWindow):
         # # self.process_button.clicked.connect(self.detect_objects)
         # right_layout.addWidget(self.compare_button)
 
-        # right_layout.setStretch(0, 10)
-        # right_layout.setStretch(1, 26)
-        # right_layout.setStretch(2, 24)
-        # right_layout.setStretch(3, 10)
-        # right_layout.setStretch(4, 20)
-        # right_layout.setStretch(4, 10)
         right_layout.setStretch(0, 1)  # process_title
         right_layout.setStretch(1, 6)  # result_widget (область результата)
         right_layout.setStretch(2, 4)  # results_table
@@ -593,10 +565,6 @@ class MainScreen(QMainWindow):
             view_button.clicked.connect(lambda: self.view_content_image(side))
         elif type == 'video':
             view_button.clicked.connect(lambda: self.view_content_video(side))
-        # if type == 'image':
-        #     view_button.clicked = lambda: self.view_content_image(side)
-        # elif type == 'video':
-        #     view_button.clicked = lambda: self.view_content_video(side)
         overlay_layout.addWidget(view_button)
         
         # кнопка закрытия (крестик)
@@ -633,19 +601,6 @@ class MainScreen(QMainWindow):
         """
         Удаляет виджеты из области отображения файлов.
         """
-        # if side == 'left':
-        #     if hasattr(self, 'left_show_container'):
-        #         self.left_show_container.deleteLater()
-        #         del self.left_show_container
-        #     if hasattr(self, 'left_show_label'):
-        #         del self.left_show_label
-        # elif side == 'right':
-        #     if hasattr(self, 'right_show_container'):
-        #         self.right_show_container.deleteLater()
-        #         del self.right_show_container
-        #     if hasattr(self, 'right_show_label'):
-        #         del self.right_show_label
-
         if side == 'left': layout = self.file_layout
         elif side == 'right': layout = self.result_layout
         for i in reversed(range(layout.count())):
