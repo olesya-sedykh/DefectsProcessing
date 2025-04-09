@@ -51,6 +51,27 @@ class MainScreen(QMainWindow):
         self.font = QFont()
         self.font.setPointSize(10)
 
+        # стиль кнопок
+        self.buttons_style = """
+            QPushButton {
+                background-color: #F5F5F5;
+                border: 2px solid #96C896;
+                padding: 10px;
+                color: #333333;
+            }
+            QPushButton:hover {
+                background-color: #e0dede;
+            }
+            QPushButton:disabled {
+                background-color: #F5F5F5;
+                border: 1px solid #E0E0E0;
+                color: #B0B0B0;
+            }
+            QPushButton:pressed {
+                background-color: #C8E6C8;
+            }
+        """
+
         # главный виджет
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -74,7 +95,7 @@ class MainScreen(QMainWindow):
         self.file_type.addItem("Обработка изображения")
         self.file_type.addItem("Обработка датасета")
         self.file_type.addItem("Обработка видео")
-        self.file_type.setFixedHeight(40)
+        self.file_type.setFixedHeight(45)
         # self.file_type.setMinimumHeight(40)
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(self.font)
@@ -82,7 +103,14 @@ class MainScreen(QMainWindow):
 
         # область для загрузки и отображения файлов
         self.file_widget = QWidget()
-        self.file_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
+        self.file_widget.setObjectName("file_widget")
+        self.file_widget.setStyleSheet("""
+            QWidget#file_widget {
+                background-color: white;
+                border-radius: 20px;
+                border: 2px solid #96C896;
+            }
+        """)
         # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         # self.file_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.file_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -97,17 +125,18 @@ class MainScreen(QMainWindow):
         # кнопка для скачивания исходной размеченной картинки
         self.download_detect_button = QPushButton("Скачать размеченное изображение")
         self.download_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.download_detect_button.setFixedHeight(40)
-        self.download_detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_detect_button.setFixedHeight(50)
+        self.download_detect_button.setStyleSheet(self.buttons_style)
         self.download_detect_button.setFont(self.font)
         # self.process_button.clicked.connect(self.detect_objects)
+        # self.download_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
         left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
         self.defects_processing_type = QComboBox()
         self.defects_processing_type.addItem("Исправить все дефекты")
         self.defects_processing_type.addItem("Исправить основной дефект")
-        self.defects_processing_type.setFixedHeight(40)
+        self.defects_processing_type.setFixedHeight(45)
         # self.defects_processing_type.setMinimumHeight(40)
         self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.defects_processing_type.setFont(self.font)
@@ -118,7 +147,7 @@ class MainScreen(QMainWindow):
         self.process_type.addItem("Автоматическая обработка")
         self.process_type.addItem("Ручная обработка")
         # self.process_type.setFixedHeight(40)
-        self.process_type.setMinimumHeight(40)
+        self.process_type.setMinimumHeight(45)
         self.process_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.process_type.setFont(self.font)
         left_layout.addWidget(self.process_type)
@@ -244,8 +273,8 @@ class MainScreen(QMainWindow):
         # кнопка для обработки дефектов
         self.process_button = QPushButton("Исправить дефекты")
         self.process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.process_button.setFixedHeight(40)
-        self.process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.process_button.setFixedHeight(50)
+        self.process_button.setStyleSheet(self.buttons_style)
         self.process_button.setFont(self.font)
         self.process_button.clicked.connect(self.processing)
         left_layout.addWidget(self.process_button)
@@ -287,14 +316,27 @@ class MainScreen(QMainWindow):
         self.process_title = QLabel("Результат обработки")
         self.process_title.setAlignment(Qt.AlignCenter)
         self.process_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.process_title.setFixedHeight(40)
-        self.process_title.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.process_title.setFixedHeight(45)
+        self.process_title.setStyleSheet("""
+            background-color: #F5F5F5;  /* Светло-серый как в таблицах */
+            border-radius: 10px; 
+            padding: 10px;
+            border-bottom: 2px solid #E0E0E0;  /* Тонкая линия снизу */
+            color: #555555;  /* Темно-серый текст */
+        """)
         self.process_title.setFont(self.font)
         right_layout.addWidget(self.process_title)
 
         # область отображения результата обработки
         self.result_widget = QWidget()
-        self.result_widget.setStyleSheet("background-color: lightgray; border-radius: 20px;")
+        self.result_widget.setObjectName("result_widget")
+        self.result_widget.setStyleSheet("""
+            QWidget#result_widget {
+                background-color: white;
+                border-radius: 20px;
+                border: 2px solid #96C896;
+            }
+        """)
         # self.result_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.result_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.result_widget.setMinimumHeight(200)
@@ -327,7 +369,7 @@ class MainScreen(QMainWindow):
         """)
         self.results_table.setShowGrid(True)
         self.results_table.setGridStyle(Qt.SolidLine)
-        self.results_table.setMinimumHeight(265)
+        self.results_table.setMinimumHeight(270)
         self.results_table.resizeRowsToContents()
         # self.update_results_table()
         right_layout.addWidget(self.results_table)
@@ -335,9 +377,10 @@ class MainScreen(QMainWindow):
         # кнопка для обнаружения объектов
         self.detect_button = QPushButton("Найти объекты")
         self.detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.detect_button.setFixedHeight(40)
-        self.detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.detect_button.setFixedHeight(50)
+        self.detect_button.setStyleSheet(self.buttons_style)
         self.detect_button.setFont(self.font)
+        # self.detect_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_layout.addWidget(self.detect_button)
 
@@ -351,8 +394,9 @@ class MainScreen(QMainWindow):
         self.download_process_button = QPushButton("Скачать\nобработанное\nизображение")
         self.download_process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.download_process_button.setFixedHeight(100)
-        self.download_process_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_process_button.setStyleSheet(self.buttons_style)
         self.download_process_button.setFont(self.font)
+        # self.download_process_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_button)
 
@@ -360,8 +404,9 @@ class MainScreen(QMainWindow):
         self.download_process_detect_button = QPushButton("Скачать\nразмеченное\nизображение")
         self.download_process_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.download_process_detect_button.setFixedHeight(100)
-        self.download_process_detect_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.download_process_detect_button.setStyleSheet(self.buttons_style)
         self.download_process_detect_button.setFont(self.font)
+        # self.download_process_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_detect_button)
 
@@ -391,6 +436,9 @@ class MainScreen(QMainWindow):
 
         main_layout.addWidget(right_widget, stretch=50)
 
+        # обновляем состояние всех кнопок
+        self.update_buttons_state()
+
     def center(self) -> None:
         """
         Устанавливает окно по центру экрана.
@@ -399,6 +447,15 @@ class MainScreen(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def update_buttons_state(self):
+        """
+        Обновляет состояние всех кнопок.
+        """
+        self.detect_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
+        self.download_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
+        self.download_process_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
+        self.download_process_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
 
     
     # =========================================================================
@@ -477,8 +534,15 @@ class MainScreen(QMainWindow):
 
         # кнопка загрузки
         self.load_button = QPushButton('Загрузить\nфайл')
-        self.load_button.setFixedSize(130, 150)
-        self.load_button.setStyleSheet("background-color: gray; border-radius: 10px; padding: 10px;")
+        self.load_button.setFixedSize(200, 170)
+        self.load_button.setStyleSheet(
+            self.buttons_style +
+            """
+            QPushButton {
+                border-radius: 15px;
+            }
+            """
+        )
         self.load_button.setFont(self.font)
         self.load_button.clicked.connect(self.load_file)
         button_horizontal_layout.addWidget(self.load_button)
@@ -488,6 +552,9 @@ class MainScreen(QMainWindow):
 
         # добавляем горизонтальный layout в вертикальный
         load_button_layout.addLayout(button_horizontal_layout)
+
+        # пространство сверху от кнопки, чтобы сделать ее по центру по вертикали
+        load_button_layout.addStretch()
 
         # добавляем контейнер с кнопкой в file_layout
         self.file_layout.addWidget(self.load_button_container)
@@ -608,6 +675,13 @@ class MainScreen(QMainWindow):
         # удаляем виджеты из области отображения файлов
         if hasattr(self, 'file_layout'):
             self.delete_files_widgets('left')
+
+        if hasattr(self, 'processed_path'):
+            del self.processed_path
+        if hasattr(self, 'detect_path'):
+            del self.detect_path
+        if hasattr(self, 'detect_processed_path'):
+            del self.detect_processed_path
 
         # опять создаем контейнер для кнопки загрузки и саму кнопку
         self.create_load_button()
@@ -1113,4 +1187,5 @@ class MainScreen(QMainWindow):
             print(self.result)
             self.update_display(file_path=self.processed_path, close=False, side='right')
             self.update_results_table()
+            self.update_buttons_state()
             
