@@ -19,6 +19,7 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 import os
 import cv2
 from pathlib import Path
+from functools import partial
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
@@ -45,7 +46,7 @@ class MainScreen(QMainWindow):
         self.setStyleSheet(f"background-color: {self.background_color};")
         self.center()
 
-        self.defects = ["Размытие", "Контрастность", "Блики", "Шум"]
+        # self.defects = ["Размытие", "Контрастность", "Блики", "Шум"]
 
         # шрифт
         self.font = QFont()
@@ -71,6 +72,104 @@ class MainScreen(QMainWindow):
                 background-color: #C8E6C8;
             }
         """
+
+        # словарь с методами и параметрами
+        self.methods = {
+            'blur': {
+                'name': 'Размытие',
+                'automatic_method': 'Фильтр Лапласа',
+                'manual_methods': {
+                    'Фильтр Лапласа': {
+                        'params': {'alpha': 6}
+                    },
+                    'Повышение резкости': {
+                        'params': {'sigma': 3, 'alpha': 5.5, 'betta': -4.5}
+                    }
+                }
+            },
+            'contrast': {
+                'name': 'Контрастность',
+                'automatic_method': 'Алгоритм CLAHE',
+                'manual_methods': {
+                    'Алгоритм CLAHE': {
+                        'params': {
+                            'color_space': ['hsv', 'rgb', 'yuv'],
+                            'clip_limit': 6.5,
+                            'tile_grid_size': (12, 12)
+                        }
+                    },
+                    'Гистограммное выравнивание': {
+                        'params': {'color_space': ["hsv", "yuv"]}
+                    }
+                }
+            },
+            'glares': {
+                'name': 'Блики',
+                'automatic_method': 'Адаптивное восстановление',
+                'manual_methods': {
+                    'Восстановление с помощью маски': {
+                        'params': {
+                            'mask_mode': ['brightness', 'gradient', 'combine'],
+                            'color_space_mask': ['hsv', 'gray', 'yuv'],
+                            'color_space': ['yuv', 'rgb', 'hsv'],
+                            'threshold': 160,
+                            'inpaint_radius': 3,
+                            'inpaint_method': ['inpaint_ns', 'ipaint_telea'],
+                            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                            'gradient_threshold': 100
+                        }
+                    },
+                    'Адаптивное восстановление': {
+                        'params': {
+                            'mask_mode': ['brightness', 'gradient', 'combine'],
+                            'color_space_mask': ['hsv', 'gray', 'yuv'],
+                            'color_space': ['yuv', 'rgb', 'hsv'],
+                            'adaptive_method': ['gaussian', 'mean'],
+                            'block_size': 7,
+                            'C': 5,
+                            'inpaint_radius': 3,
+                            'inpaint_method': ['inpaint_ns', 'ipaint_telea'],
+                            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                            'gradient_threshold': 100
+                        }
+                    }
+                }
+            },
+            'noise': {
+                'name': 'Шум',
+                'automatic_method': 'Нелокальное среднее',
+                'manual_methods': {
+                    'Фильтр среднего значения': {
+                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                    },
+                    'Медианный фильтр': {
+                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                    },
+                    'Фильтр Гаусса': {
+                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                    },
+                    'Вейвлет-обработка': {
+                        'params': {
+                            'type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
+                            'mode': ['hard', 'soft'],
+                            'number_of_levels': 3,
+                            'estimate_noise': ['function', 'gaussian', 'wavelet'],
+                            'sigma': 3
+                        }
+                    },
+                    'Нелокальное среднее': {
+                        'params': {
+                            'h': 10,
+                            'template_window_size': 7,
+                            'search_window_size': 21
+                        }
+                    }
+                }
+            }
+        }
+
+        # список дефектов для интерфейса (русские названия)
+        self.defects = [self.methods[defect]['name'] for defect in self.methods]
 
         # главный виджет
         central_widget = QWidget()
@@ -172,90 +271,90 @@ class MainScreen(QMainWindow):
         self.methods_table.setGridStyle(Qt.SolidLine)
         self.methods_table.resizeRowsToContents()
         
-        # методы для автоматической обработки
-        self.automatic_methods = [
-            "Фильтр Лапласа",
-            "Алгоритм CLAHE",
-            "Адаптивное восстановление",
-            "Нелокальное среднее"
-        ]
+        # # методы для автоматической обработки
+        # self.automatic_methods = [
+        #     "Фильтр Лапласа",
+        #     "Алгоритм CLAHE",
+        #     "Адаптивное восстановление",
+        #     "Нелокальное среднее"
+        # ]
         
-        # методы для ручной обработки
-        self.manual_options = {
-            "Размытие": ["Фильтр Лапласа", "Повышение резкости"],
-            "Контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
-            "Блики": ["Восстановление с помощью маски", "Адаптивное восстановление"],
-            "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса", "Вейвлет-обработка", "Нелокальное среднее"]
-        }
+        # # методы для ручной обработки
+        # self.manual_options = {
+        #     "Размытие": ["Фильтр Лапласа", "Повышение резкости"],
+        #     "Контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
+        #     "Блики": ["Восстановление с помощью маски", "Адаптивное восстановление"],
+        #     "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса", "Вейвлет-обработка", "Нелокальное среднее"]
+        # }
         
-        # параметры по умолчанию для методов
-        self.method_parameters = {
-            "Фильтр Лапласа": {
-                "alpha": 6
-            },
-            "Повышение резкости": {
-                "sigma": 3, 
-                "alpha": 5.5, 
-                "betta": -4.5
-            },
+        # # параметры по умолчанию для методов
+        # self.method_parameters = {
+        #     "Фильтр Лапласа": {
+        #         "alpha": 6
+        #     },
+        #     "Повышение резкости": {
+        #         "sigma": 3, 
+        #         "alpha": 5.5, 
+        #         "betta": -4.5
+        #     },
 
-            "Гистограммное выравнивание": {
-                "color_space": ["hsv", "yuv"]
-            },
-            "Алгоритм CLAHE": {
-                "color_space": ['hsv', 'rgb', 'yuv'], 
-                "clip_limit": 6.5, 
-                "tile_grid_size": (12, 12)
-            },
+        #     "Гистограммное выравнивание": {
+        #         "color_space": ["hsv", "yuv"]
+        #     },
+        #     "Алгоритм CLAHE": {
+        #         "color_space": ['hsv', 'rgb', 'yuv'], 
+        #         "clip_limit": 6.5, 
+        #         "tile_grid_size": (12, 12)
+        #     },
 
-            "Восстановление с помощью маски": {
-                "mask_mode": ['brightness', 'gradient', 'combine'], 
-                "color_space_mask": ['hsv', 'gray', 'yuv'],
-                "color_space": ['yuv', 'rgb', 'hsv'],
-                "threshold": 160,
-                "inpaint_radius": 3,
-                "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
-                'gradient_method': ['sobel', 'scharr', 'laplacian'],
-                'gradient_threshold': 100
-            },
-            "Адаптивное восстановление": {
-                "mask_mode": ['brightness', 'gradient', 'combine'],
-                "color_space_mask": ['hsv', 'gray', 'yuv'],
-                "color_space": ['yuv', 'rgb', 'hsv'],
-                "adaptive_method": ['gaussian', 'mean'],
-                "block_size": 7,
-                "C": 5,
-                "inpaint_radius": 3,
-                "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
-                'gradient_method': ['sobel', 'scharr', 'laplacian'],
-                'gradient_threshold': 100
-            },
+        #     "Восстановление с помощью маски": {
+        #         "mask_mode": ['brightness', 'gradient', 'combine'], 
+        #         "color_space_mask": ['hsv', 'gray', 'yuv'],
+        #         "color_space": ['yuv', 'rgb', 'hsv'],
+        #         "threshold": 160,
+        #         "inpaint_radius": 3,
+        #         "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
+        #         'gradient_method': ['sobel', 'scharr', 'laplacian'],
+        #         'gradient_threshold': 100
+        #     },
+        #     "Адаптивное восстановление": {
+        #         "mask_mode": ['brightness', 'gradient', 'combine'],
+        #         "color_space_mask": ['hsv', 'gray', 'yuv'],
+        #         "color_space": ['yuv', 'rgb', 'hsv'],
+        #         "adaptive_method": ['gaussian', 'mean'],
+        #         "block_size": 7,
+        #         "C": 5,
+        #         "inpaint_radius": 3,
+        #         "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
+        #         'gradient_method': ['sobel', 'scharr', 'laplacian'],
+        #         'gradient_threshold': 100
+        #     },
 
-            "Фильтр среднего значения": {
-                "estimate_noise": ['function', 'gaussian'], 
-                "sigma": 3
-            },
-            "Медианный фильтр": {
-                "estimate_noise": ['function', 'gaussian'], 
-                "sigma": 3
-            },
-            "Фильтр Гаусса": {
-                "estimate_noise": ['function', 'gaussian'], 
-                "sigma": 3
-            },
-            "Вейвлет-обработка": {
-                "type": ['haar', 'db2', 'db4', 'sym2', 'bior1.3'], 
-                "mode": ['hard', 'soft'], 
-                "number_of_levels": 3, 
-                "estimate_noise": ['function', 'gaussian', 'wavelet'], 
-                "sigma": 3
-            },
-            "Нелокальное среднее": {
-                "h": 10, 
-                "template_window_size": 7, 
-                "search_window_size": 21
-            }
-        }
+        #     "Фильтр среднего значения": {
+        #         "estimate_noise": ['function', 'gaussian'], 
+        #         "sigma": 3
+        #     },
+        #     "Медианный фильтр": {
+        #         "estimate_noise": ['function', 'gaussian'], 
+        #         "sigma": 3
+        #     },
+        #     "Фильтр Гаусса": {
+        #         "estimate_noise": ['function', 'gaussian'], 
+        #         "sigma": 3
+        #     },
+        #     "Вейвлет-обработка": {
+        #         "type": ['haar', 'db2', 'db4', 'sym2', 'bior1.3'], 
+        #         "mode": ['hard', 'soft'], 
+        #         "number_of_levels": 3, 
+        #         "estimate_noise": ['function', 'gaussian', 'wavelet'], 
+        #         "sigma": 3
+        #     },
+        #     "Нелокальное среднее": {
+        #         "h": 10, 
+        #         "template_window_size": 7, 
+        #         "search_window_size": 21
+        #     }
+        # }
         
         self.update_methods_table()
 
@@ -929,10 +1028,15 @@ class MainScreen(QMainWindow):
         Очищает правую часть интерфейса.
         """
         # удаляем все виджеты из right_layout
-        for i in reversed(range(self.right_layout.count())):
-            widget = self.right_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
+        while self.right_layout.count():
+            item = self.right_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        # for i in reversed(range(self.right_layout.count())):
+        #     widget = self.right_layout.itemAt(i).widget()
+        #     if widget:
+        #         widget.deleteLater()
+
         # if hasattr(self, 'result_layout'): self.delete_files_widgets('right')
         
     def upper_right_side(self):
@@ -966,6 +1070,8 @@ class MainScreen(QMainWindow):
         self.result_widget.setFixedHeight(self.file_widget.height())
         self.result_layout = QVBoxLayout(self.result_widget)
         self.right_layout.addWidget(self.result_widget)
+
+        self.right_layout.addStretch()
 
 
     def add_right_side_additional_elements(self):
@@ -1072,9 +1178,11 @@ class MainScreen(QMainWindow):
         """
         
         # заполняем таблицу
-        for row, defect in enumerate(self.defects):
+        for row, defect_ru in enumerate(self.defects):
+            defect_en = next(key for key, val in self.methods.items() if val['name'] == defect_ru)
+
             # первый столбец - название дефекта
-            item = QTableWidgetItem(defect)
+            item = QTableWidgetItem(defect_ru)
             item.setTextAlignment(Qt.AlignCenter)
             font = item.font()
             font.setBold(True)
@@ -1097,27 +1205,36 @@ class MainScreen(QMainWindow):
             # для автоматического режима
             if self.process_type.currentIndex() == 0:
                 # метод обработки
-                method_label = QLabel(self.automatic_methods[row])
+                method_name = self.methods[defect_en]['automatic_method']
+                method_label = QLabel(method_name)
                 method_label.setAlignment(Qt.AlignCenter)
                 layout.addWidget(method_label, stretch=1)
                 
                 # кнопка шестерёнки (только просмотр)
-                gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, False))
-                layout.addWidget(gear_btn)
+                gear_btn.clicked.connect(
+                    partial(self.__handle_gear_click, defect_en, method_name, False)
+                )
 
             # для ручного режима   
             else:
                 # выпадающий список методов
                 combo = QComboBox()
-                combo.addItems(self.manual_options[defect])
+                combo.addItems(list(self.methods[defect_en]['manual_methods'].keys()))
                 combo.setCurrentIndex(0)
                 combo.setStyleSheet("QComboBox { padding: 2px; }")
                 layout.addWidget(combo, stretch=1)
                 
                 # кнопка шестерёнки (редактирование)
-                gear_btn.clicked.connect(lambda _, r=row: self.show_parameters(r, True))
-                layout.addWidget(gear_btn)
+                gear_btn.clicked.connect(
+                    partial(self.__handle_combo_gear_click, defect_en, combo)
+                )
+                # при изменении выбора обновляем текущий метод
+                combo.currentTextChanged.connect(
+                    partial(self.update_current_method, defect_en)
+                )
             
+            # добавляем кнопку шестеренки в лайаут
+            layout.addWidget(gear_btn)
             # устанавливаем контейнер в таблицу
             self.methods_table.setCellWidget(row, 1, container)
         
@@ -1125,26 +1242,64 @@ class MainScreen(QMainWindow):
         self.methods_table.resizeRowsToContents()
         self.methods_table.setMinimumHeight(160)
 
-    def show_parameters(self, row, editable):
+    def __handle_gear_click(self, defect_en, method_name, editable):
         """
-        Открывает диалоговое окошко для просмотра или ввода параметров.
-        """       
-        if self.process_type.currentText() == "Автоматическая обработка":
-            method_name = self.automatic_methods[row]
+        Обработчик клика по шестеренке в автоматическом режиме.
+        """
+        self.show_parameters(defect_en, method_name, editable)
+
+    def __handle_combo_gear_click(self, defect_en, combo):
+        """
+        Обработчик клика по шестеренке в ручном режиме.
+        """
+        method_name = combo.currentText()
+        self.show_parameters(defect_en, method_name, True)
+    
+    def update_current_method(self, defect_en, method_name):
+        """
+        Обновляет текущий выбранный метод для дефекта (для ручного режима).
+        """
+        if hasattr(self, 'current_methods'):
+            self.current_methods[defect_en] = method_name
         else:
-            combo = self.methods_table.cellWidget(row, 1).findChild(QComboBox)
-            method_name = combo.currentText()
+            self.current_methods = {defect_en: method_name}
+    
+    def show_parameters(self, defect_en, method_name, editable):
+        """
+        Показывает параметры для выбранного метода обработки дефекта.
+        """
+        print(defect_en)
+        print(method_name)
+        print(self.methods[defect_en])
+        # получаем параметры для выбранного метода
+        params = self.methods[defect_en]['manual_methods'][method_name]['params'].copy()
         
-        # Всегда используем текущие сохраненные параметры (если они есть)
-        parameters = self.method_parameters.get(method_name, {}).copy()
-        
-        dialog = ParameterDialog(method_name, parameters, editable)
+        dialog = ParameterDialog(method_name, params, editable)
         if dialog.exec_() == QDialog.Accepted and editable:
-            # Сохраняем новые параметры только если было редактирование
-            self.method_parameters[method_name] = dialog.get_parameters()
-        elif not editable:
-            # Для просмотра просто показываем текущие сохраненные параметры
-            pass
+            # сохраняем обновленные параметры
+            self.methods[defect_en]['manual_methods'][method_name]['params'] = dialog.get_parameters()
+    
+    # def show_parameters(self, row, editable):
+    #     """
+    #     Открывает диалоговое окошко для просмотра или ввода параметров.
+    #     """       
+    #     if self.process_type.currentText() == "Автоматическая обработка":
+    #         method_name = self.automatic_methods[row]
+    #     else:
+    #         combo = self.methods_table.cellWidget(row, 1).findChild(QComboBox)
+    #         method_name = combo.currentText()
+        
+    #     # Всегда используем текущие сохраненные параметры (если они есть)
+    #     parameters = self.method_parameters.get(method_name, {}).copy()
+        
+    #     dialog = ParameterDialog(method_name, parameters, editable)
+    #     if dialog.exec_() == QDialog.Accepted and editable:
+    #         # Сохраняем новые параметры только если было редактирование
+    #         self.method_parameters[method_name] = dialog.get_parameters()
+    #         print(self.method_parameters)
+    #     elif not editable:
+    #         # Для просмотра просто показываем текущие сохраненные параметры
+    #         pass
 
     
     def update_results_table(self):
@@ -1199,6 +1354,24 @@ class MainScreen(QMainWindow):
         # добавляем заголовок и область под результат обработки
         self.upper_right_side()
 
+        # готовим данные для передачи на бэкенд
+        processing_methods = {}
+        for defect_en in self.methods:
+            # для автоматической обработки
+            if self.process_type.currentIndex() == 0:
+                method_name = self.methods[defect_en]['automatic_method']
+                params = self.methods[defect_en]['manual_methods'][method_name]['params']
+            # для ручной обработки
+            else:
+                method_name = self.current_methods.get(defect_en, 
+                            list(self.methods[defect_en]['manual_methods'].keys())[0])
+                params = self.methods[defect_en]['manual_methods'][method_name]['params']
+            
+            processing_methods[defect_en] = {
+                'method': method_name,
+                'params': params
+            }
+
         # выполняем нужный вид обработки
         if self.file_type.currentText() == 'Обработка изображения':
             if self.process_type.currentText() == 'Автоматическая обработка':
@@ -1210,6 +1383,17 @@ class MainScreen(QMainWindow):
                     self.processed_path, self.result = self.processor.recovery_image(
                         processing_mode='automatic',
                         defect_mode='all_defects')
+            elif self.process_type.currentText() == 'Ручная обработка':
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    self.processed_path, self.result = self.processor.recovery_image(
+                        processing_mode='manual',
+                        defect_mode='one_defect',
+                        methods=processing_methods)
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    self.processed_path, self.result = self.processor.recovery_image(
+                        processing_mode='automatic',
+                        defect_mode='all_defects',
+                        methods=processing_methods)
         elif self.file_type.currentText() == 'Обработка видео':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
@@ -1222,6 +1406,19 @@ class MainScreen(QMainWindow):
                     self.processed_path, self.result = self.processor.recovery_video(
                         processing_mode='automatic',
                         defect_mode='all_defects')
+            if self.process_type.currentText() == 'Ручная обработка':
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    print('yes')
+                    self.processed_path, self.result = self.processor.recovery_video(
+                        processing_mode='manual',
+                        defect_mode='one_defect',
+                        methods=processing_methods)
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    print('yes')
+                    self.processed_path, self.result = self.processor.recovery_video(
+                        processing_mode='manual',
+                        defect_mode='all_defects',
+                        methods=processing_methods)
 
         # если обработка прошла успешно            
         if self.processed_path:

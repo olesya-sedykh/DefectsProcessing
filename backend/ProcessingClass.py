@@ -118,7 +118,7 @@ class ProcessingClass:
         color_space='rgb', 
         threshold=200, 
         inpaint_radius=3, 
-        flags=cv2.INPAINT_NS,
+        flags='inpaint_ns', #cv2.INPAINT_NS,
         mask_mode='brightness',
         gradient_method='sobel',
         gradient_threshold=50,
@@ -137,6 +137,10 @@ class ProcessingClass:
         gradient_threshold: порог для создания маски на основе градиента.
         mask_mode: режим создания маски ('brightness', 'gradient', 'combine').
         """
+
+        if flags == 'inpaint_ns': inpaint_mode = cv2.INPAINT_NS
+        elif flags == 'inpaint_telea': inpaint_mode = cv2.INPAINT_TELEA
+
         # преобразование изображения в нужное цветовое пространство для маски
         if color_space_mask == 'yuv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
@@ -187,18 +191,34 @@ class ProcessingClass:
 
         # восстановление изображения
         if color_space == 'rgb':
-            inpaint_image = cv2.inpaint(image, mask, inpaintRadius=inpaint_radius, flags=flags)
+            inpaint_image = cv2.inpaint(image, mask, inpaintRadius=inpaint_radius, flags=inpaint_mode)
         else:
-            channels[index] = cv2.inpaint(channels[index], mask, inpaintRadius=inpaint_radius, flags=flags)
-            if color_space == 'gray':
-                inpaint_image = cv2.cvtColor(channels[index], cv2.COLOR_GRAY2BGR)
-            else:
-                inpaint_image = cv2.merge(channels)
-                if color_space == 'yuv':
-                    inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_YUV2BGR)
-                elif color_space == 'hsv':
-                    inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_HSV2BGR)
-        
+            if color_space == 'yuv':
+                img_converted = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+                img_channels = list(cv2.split(img_converted))
+            elif color_space == 'hsv':
+                img_converted = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                img_channels = list(cv2.split(img_converted))
+            elif color_space == 'gray':
+                img_channels = [cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)]
+                
+            bright_channel_idx = 0 if color_space == 'yuv' else 2 if color_space == 'hsv' else 0
+            img_channels[bright_channel_idx] = cv2.inpaint(
+                img_channels[bright_channel_idx], 
+                mask, 
+                inpaintRadius=inpaint_radius, 
+                flags=inpaint_mode
+            )
+
+            # Собираем обратно
+            inpaint_image = cv2.merge(img_channels)
+            if color_space == 'yuv':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_YUV2BGR)
+            elif color_space == 'hsv':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_HSV2BGR)
+            elif color_space == 'gray':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_GRAY2BGR)
+
         return inpaint_image
     
     def adaptive_glares_inpaint(
@@ -206,11 +226,11 @@ class ProcessingClass:
         image, 
         color_space_mask='gray', 
         color_space='rgb', 
-        adaptive_method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        adaptive_method='gaussian', #cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         block_size=11, 
         C=2, 
         inpaint_radius=3, 
-        flags=cv2.INPAINT_NS,
+        flags='inpaint_ns', #cv2.INPAINT_NS,
         mask_mode='brightness',
         gradient_threshold=50,
         gradient_method='sobel'
@@ -234,6 +254,13 @@ class ProcessingClass:
         gradient_threshold: порог для создания маски на основе градиента.
         mask_mode: режим создания маски ('brightness', 'gradient', 'combine').
         """
+
+        if flags == 'inpaint_ns': inpaint_mode = cv2.INPAINT_NS
+        elif flags == 'inpaint_telea': inpaint_mode = cv2.INPAINT_TELEA
+
+        if adaptive_method == 'gaussian': adaptive_mode = cv2.ADAPTIVE_THRESH_GAUSSIAN_C
+        elif adaptive_method == 'mean': adaptive_mode = cv2.ADAPTIVE_THRESH_MEAN_C
+
         # преобразование изображения в нужное цветовое пространство для маски
         if color_space_mask == 'yuv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
@@ -253,7 +280,7 @@ class ProcessingClass:
             brightness_mask = cv2.adaptiveThreshold(
                 channels[index], 
                 255, 
-                adaptive_method, 
+                adaptive_mode, 
                 cv2.THRESH_BINARY, 
                 block_size, 
                 C
@@ -291,17 +318,32 @@ class ProcessingClass:
 
         # восстановление изображения
         if color_space == 'rgb':
-            inpaint_image = cv2.inpaint(image, mask, inpaintRadius=inpaint_radius, flags=flags)
+            inpaint_image = cv2.inpaint(image, mask, inpaintRadius=inpaint_radius, flags=inpaint_mode)
         else:
-            channels[index] = cv2.inpaint(channels[index], mask, inpaintRadius=inpaint_radius, flags=flags)
-            if color_space == 'gray':
-                inpaint_image = cv2.cvtColor(channels[index], cv2.COLOR_GRAY2BGR)
-            else:
-                inpaint_image = cv2.merge(channels)
-                if color_space == 'yuv':
-                    inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_YUV2BGR)
-                elif color_space == 'hsv':
-                    inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_HSV2BGR)
+            if color_space == 'yuv':
+                img_converted = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+                img_channels = list(cv2.split(img_converted))
+            elif color_space == 'hsv':
+                img_converted = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                img_channels = list(cv2.split(img_converted))
+            elif color_space == 'gray':
+                img_channels = [cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)]
+
+            bright_channel_idx = 0 if color_space == 'yuv' else 2 if color_space == 'hsv' else 0
+            img_channels[bright_channel_idx] = cv2.inpaint(
+                img_channels[bright_channel_idx], 
+                mask, 
+                inpaintRadius=inpaint_radius, 
+                flags=inpaint_mode
+            )
+
+            inpaint_image = cv2.merge(img_channels)
+            if color_space == 'yuv':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_YUV2BGR)
+            elif color_space == 'hsv':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_HSV2BGR)
+            elif color_space == 'gray':
+                inpaint_image = cv2.cvtColor(inpaint_image, cv2.COLOR_GRAY2BGR)
 
         return inpaint_image
     
@@ -580,38 +622,63 @@ class ProcessingClass:
             ...
         }
         """
-        # input_path, output_path = self.get_paths(image_name)
+        # словарь с результатами
+        results = {
+            'blur': [0, 0],
+            'contrast': [0, 0],
+            'glares': [0, 0],
+            'noise': [0, 0]
+        }
 
-        # input_image = cv2.imread(input_image_path)
         def apply_methods(predicted_class):
+            print('apply_methods')
+            print(methods)
             method_data = methods.get(predicted_class)
+            print(method_data)
             if method_data:
                 method = method_data['method']
+                print(method)
                 params = method_data['params']
+                print(params)
                 processed_image = method(**params)
             return processed_image
         
         if defect_mode == 'one_defect':
             predicted_class = self.determine_class(input_image)[0]
+            print('predicted_class', predicted_class)
+            if predicted_class != 'good': results[predicted_class][0] += 1
+
             processed_image = apply_methods(predicted_class)
+            processed_predicted_class = self.determine_class(processed_image)[0]
+            print('processed_predicted_class', processed_predicted_class)
+            if processed_predicted_class == 'good' and predicted_class != 'good': results[predicted_class][1] += 1
         elif defect_mode == 'all_defects':
             defects_in_image = [] # список дефектов на картинке
             processed_image = input_image.copy()
             while True:
+                uncorrected_defect = ''
                 predicted_class = self.determine_class(processed_image)[0]
                 if predicted_class in defects_in_image:
+                    uncorrected_defect = predicted_class
                     break
 
                 if predicted_class == 'good':
                     break
                 else:
                     defects_in_image.append(predicted_class)
+                    results[predicted_class][0] += 1
                 
                 processed_image = apply_methods(predicted_class)
 
-        # cv2.imwrite(output_image_path, processed_image)
+            # все дефекты на картинке, которые есть в списке дефектов, исправлены,
+            # кроме того дефекта, который возник еще раз (uncorrected_defect)
+            for defect in defects_in_image:
+                if defect != uncorrected_defect:
+                    results[defect][1] += 1
 
-        return processed_image
+        print('back', results)
+
+        return (processed_image, results)
     
     def recovery_image(self, processing_mode, defect_mode, methods=None):
         """
@@ -815,13 +882,13 @@ class ProcessingClass:
                 input_image_path = os.path.join(self.input_path, image_name)
                 output_image_path = os.path.join(processed_folder_path, image_name)
 
-                input_image = self.__cv2_imread_unicode(self.input_path)
+                input_image = self.__cv2_imread_unicode(input_image_path)
                 if input_image is None: return None
 
                 if processing_mode == 'automatic':
-                    processed_image = self.automatic_recovery_image(input_image, defect_mode)
+                    processed_image, results = self.automatic_recovery_image(input_image, defect_mode)
                 elif processing_mode == 'manual':
-                    processed_image = self.manual_recovery_image(input_image, methods, defect_mode)
+                    processed_image, results = self.manual_recovery_image(input_image, methods, defect_mode)
 
                 # формируем необходимое название для сохранения
                 original_filename = os.path.basename(input_image_path)
