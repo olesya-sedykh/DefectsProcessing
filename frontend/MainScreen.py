@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import (
     QDesktopWidget, QFrame, QLineEdit, 
     QComboBox, QTableWidget, QTableWidgetItem, 
     QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
-    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget
+    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget,
+    QMessageBox
 )
 from PyQt5.QtGui import (
     QPalette, QColor, QFont, QIntValidator, 
@@ -20,6 +21,7 @@ import os
 import cv2
 from pathlib import Path
 from functools import partial
+import shutil
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
@@ -253,6 +255,7 @@ class MainScreen(QMainWindow):
         self.download_detect_button.setFixedHeight(50)
         self.download_detect_button.setStyleSheet(self.buttons_style)
         self.download_detect_button.setFont(self.font)
+        self.download_detect_button.clicked.connect(lambda: self.download_files(self.detect_path))
         left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
@@ -384,8 +387,23 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'download_process_button'):
             self.download_process_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         if hasattr(self, 'download_process_detect_button'):
-            self.download_process_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
+            self.download_process_detect_button.setEnabled(hasattr(self, 'processed_detect_path') and self.processed_detect_path is not None)
 
+    def download_files(self, path):
+        downloads_dir = os.path.expanduser("~/Downloads")
+        file_name = os.path.basename(path)
+        save_path = os.path.join(downloads_dir, file_name)
+        counter = 1
+        base_name, ext = os.path.splitext(file_name)
+        while os.path.exists(save_path):
+            save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}{ext}")).replace("\\", "/")
+            counter += 1
+        try:
+            shutil.copy2(path, save_path)
+            QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{save_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
+    
     
     # =========================================================================
     # ОБЩИЕ ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ
@@ -1070,7 +1088,7 @@ class MainScreen(QMainWindow):
         self.download_process_button.setFixedHeight(100)
         self.download_process_button.setStyleSheet(self.buttons_style)
         self.download_process_button.setFont(self.font)
-        # self.process_button.clicked.connect(self.detect_objects)
+        self.download_process_button.clicked.connect(lambda: self.download_files(self.processed_path))
         right_download_buttons_layout.addWidget(self.download_process_button)
 
         # кнопка для скачивания обработанной и размеченной картинки
@@ -1079,6 +1097,7 @@ class MainScreen(QMainWindow):
         self.download_process_detect_button.setFixedHeight(100)
         self.download_process_detect_button.setStyleSheet(self.buttons_style)
         self.download_process_detect_button.setFont(self.font)
+        self.download_process_detect_button.clicked.connect(lambda: self.download_files(self.processed_detect_path))
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_detect_button)
 
