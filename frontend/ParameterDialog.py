@@ -85,36 +85,6 @@ class ParameterDialog(QDialog):
         # принудительное обновление после полной инициализации
         QTimer.singleShot(100, self.force_update_dependencies)
     
-    # def setup_dependencies(self):
-    #     """
-    #     Явная настройка зависимостей с проверкой.
-    #     """
-    #     # зависимости параметров (когда наличие одного зависит от другого)
-    #     self.dependencies = {
-    #         'sigma': {
-    #             'source': 'estimate_noise',
-    #             'condition': ['gaussian'],
-    #             'widget_type': 'float'
-    #         },
-    #         'gradient_method': {
-    #             'source': 'mask_mode',
-    #             'condition': ['gradient', 'combine'],
-    #             'widget_type': 'combo'
-    #         },
-    #         'gradient_threshold': {
-    #             'source': 'mask_mode',
-    #             'condition': ['gradient', 'combine'],
-    #             'widget_type': 'int'
-    #         }
-    #     }
-        
-        # Проверка доступности всех виджетов
-        # for dep, config in self.dependencies.items():
-        #     if dep not in self.widgets:
-        #         print(f"Ошибка: виджет для '{dep}' не создан")
-        #     if config['source'] not in self.widgets:
-        #         print(f"Ошибка: источник '{config['source']}' для '{dep}' не найден")
-    
     def force_update_dependencies(self):
         """
         Принудительное обновление всех зависимостей.
@@ -207,11 +177,6 @@ class ParameterDialog(QDialog):
         self.content_layout.addRow(label, row_widget)
         self.widgets[name] = (widget, widget_type)
         self.rows[name] = (label, row_widget)
-    
-    # def on_mask_mode_changed(self, value):
-    #     """Специальный обработчик для mask_mode"""
-    #     print(f"mask_mode изменён на: {value}")
-    #     self.force_update_dependencies()
     
     def add_control_buttons(self, layout):
         """

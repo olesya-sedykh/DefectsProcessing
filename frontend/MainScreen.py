@@ -301,91 +301,6 @@ class MainScreen(QMainWindow):
         self.methods_table.setGridStyle(Qt.SolidLine)
         self.methods_table.resizeRowsToContents()
         
-        # # методы для автоматической обработки
-        # self.automatic_methods = [
-        #     "Фильтр Лапласа",
-        #     "Алгоритм CLAHE",
-        #     "Адаптивное восстановление",
-        #     "Нелокальное среднее"
-        # ]
-        
-        # # методы для ручной обработки
-        # self.manual_options = {
-        #     "Размытие": ["Фильтр Лапласа", "Повышение резкости"],
-        #     "Контрастность": ["Алгоритм CLAHE", "Гистограммное выравнивание"],
-        #     "Блики": ["Восстановление с помощью маски", "Адаптивное восстановление"],
-        #     "Шум": ["Фильтр среднего значения", "Медианный фильтр", "Фильтр Гаусса", "Вейвлет-обработка", "Нелокальное среднее"]
-        # }
-        
-        # # параметры по умолчанию для методов
-        # self.method_parameters = {
-        #     "Фильтр Лапласа": {
-        #         "alpha": 6
-        #     },
-        #     "Повышение резкости": {
-        #         "sigma": 3, 
-        #         "alpha": 5.5, 
-        #         "betta": -4.5
-        #     },
-
-        #     "Гистограммное выравнивание": {
-        #         "color_space": ["hsv", "yuv"]
-        #     },
-        #     "Алгоритм CLAHE": {
-        #         "color_space": ['hsv', 'rgb', 'yuv'], 
-        #         "clip_limit": 6.5, 
-        #         "tile_grid_size": (12, 12)
-        #     },
-
-        #     "Восстановление с помощью маски": {
-        #         "mask_mode": ['brightness', 'gradient', 'combine'], 
-        #         "color_space_mask": ['hsv', 'gray', 'yuv'],
-        #         "color_space": ['yuv', 'rgb', 'hsv'],
-        #         "threshold": 160,
-        #         "inpaint_radius": 3,
-        #         "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
-        #         'gradient_method': ['sobel', 'scharr', 'laplacian'],
-        #         'gradient_threshold': 100
-        #     },
-        #     "Адаптивное восстановление": {
-        #         "mask_mode": ['brightness', 'gradient', 'combine'],
-        #         "color_space_mask": ['hsv', 'gray', 'yuv'],
-        #         "color_space": ['yuv', 'rgb', 'hsv'],
-        #         "adaptive_method": ['gaussian', 'mean'],
-        #         "block_size": 7,
-        #         "C": 5,
-        #         "inpaint_radius": 3,
-        #         "inpaint_method": ['inpaint_ns', 'ipaint_telea'],
-        #         'gradient_method': ['sobel', 'scharr', 'laplacian'],
-        #         'gradient_threshold': 100
-        #     },
-
-        #     "Фильтр среднего значения": {
-        #         "estimate_noise": ['function', 'gaussian'], 
-        #         "sigma": 3
-        #     },
-        #     "Медианный фильтр": {
-        #         "estimate_noise": ['function', 'gaussian'], 
-        #         "sigma": 3
-        #     },
-        #     "Фильтр Гаусса": {
-        #         "estimate_noise": ['function', 'gaussian'], 
-        #         "sigma": 3
-        #     },
-        #     "Вейвлет-обработка": {
-        #         "type": ['haar', 'db2', 'db4', 'sym2', 'bior1.3'], 
-        #         "mode": ['hard', 'soft'], 
-        #         "number_of_levels": 3, 
-        #         "estimate_noise": ['function', 'gaussian', 'wavelet'], 
-        #         "sigma": 3
-        #     },
-        #     "Нелокальное среднее": {
-        #         "h": 10, 
-        #         "template_window_size": 7, 
-        #         "search_window_size": 21
-        #     }
-        # }
-        
         self.update_methods_table()
 
         left_layout.addWidget(self.methods_table)
@@ -460,6 +375,8 @@ class MainScreen(QMainWindow):
         """
         Обновляет состояние всех кнопок.
         """
+        if hasattr(self, 'process_button'):
+            self.process_button.setEnabled(hasattr(self, 'file_path') and self.file_path is not None)
         if hasattr(self, 'detect_button'):
             self.detect_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         if hasattr(self, 'download_detect_button'):
@@ -514,6 +431,8 @@ class MainScreen(QMainWindow):
                 model_path=MODEL_PATH,
                 output_path=OUTPUT_PATH
             )
+            # обновляем состояние кнопок
+            self.update_buttons_state()
 
     def update_display(self, file_path, close, side):
         """
@@ -780,14 +699,6 @@ class MainScreen(QMainWindow):
            hasattr(self, 'right_show_label') and self.right_show_label:
             right_label_width = self.right_show_label.width()
             self.right_overlay_widget.move(right_label_width - self.right_overlay_widget.width() - 10, 10)
-
-        # if hasattr(self, 'left_overlay_widget') and self.left_overlay_widget:
-        #     left_label_width = self.left_show_label.width() if hasattr(self, 'left_show_label') else 0
-        #     self.left_overlay_widget.move(left_label_width - self.left_overlay_widget.width() - 10, 10)
-        
-        # if hasattr(self, 'right_overlay_widget') and self.right_overlay_widget:
-        #     right_label_width = self.right_show_label.width() if hasattr(self, 'right_show_label') else 0
-        #     self.right_overlay_widget.move(right_label_width - self.right_overlay_widget.width() - 10, 10)
 
 
     # =========================================================================
@@ -1308,28 +1219,6 @@ class MainScreen(QMainWindow):
         if dialog.exec_() == QDialog.Accepted and editable:
             # сохраняем обновленные параметры
             self.methods[defect_en]['manual_methods'][method_name]['params'] = dialog.get_parameters()
-    
-    # def show_parameters(self, row, editable):
-    #     """
-    #     Открывает диалоговое окошко для просмотра или ввода параметров.
-    #     """       
-    #     if self.process_type.currentText() == "Автоматическая обработка":
-    #         method_name = self.automatic_methods[row]
-    #     else:
-    #         combo = self.methods_table.cellWidget(row, 1).findChild(QComboBox)
-    #         method_name = combo.currentText()
-        
-    #     # Всегда используем текущие сохраненные параметры (если они есть)
-    #     parameters = self.method_parameters.get(method_name, {}).copy()
-        
-    #     dialog = ParameterDialog(method_name, parameters, editable)
-    #     if dialog.exec_() == QDialog.Accepted and editable:
-    #         # Сохраняем новые параметры только если было редактирование
-    #         self.method_parameters[method_name] = dialog.get_parameters()
-    #         print(self.method_parameters)
-    #     elif not editable:
-    #         # Для просмотра просто показываем текущие сохраненные параметры
-    #         pass
 
     
     def update_results_table(self):
