@@ -434,7 +434,7 @@ class ProcessingClass:
         denoised_image = denoise_wavelet(image, sigma=noise_level, wavelet=type, rescale_sigma=True, mode=mode, wavelet_levels=number_of_levels)
         return denoised_image
     
-    def wavelet_processing_color(self, image, type, mode, number_of_levels, estimate_noise, sigma=None):
+    def wavelet_processing_color(self, image, wavelet_type, wavelet_mode, number_of_levels, wavelet_estimate_noise, sigma=None):
         """
         Подходит для цветных изображений.
         """
@@ -442,7 +442,7 @@ class ProcessingClass:
         denoised_channels = []
         
         for channel in channels:
-            denoised_channel = self.wavelet_processing(channel, type, mode, number_of_levels, estimate_noise, sigma)
+            denoised_channel = self.wavelet_processing(channel, wavelet_type, wavelet_mode, number_of_levels, wavelet_estimate_noise, sigma)
             denoised_channels.append(denoised_channel)
         
         denoised_image = cv2.merge(denoised_channels)

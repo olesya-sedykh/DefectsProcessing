@@ -80,10 +80,16 @@ class MainScreen(QMainWindow):
                 'automatic_method': 'Фильтр Лапласа',
                 'manual_methods': {
                     'Фильтр Лапласа': {
-                        'params': {'alpha': 6}
+                        'params': {
+                            'alpha': 6
+                        }
                     },
                     'Повышение резкости': {
-                        'params': {'sigma': 3, 'alpha': 5.5, 'betta': -4.5}
+                        'params': {
+                            'sigma': 3, 
+                            'alpha': 5.5, 
+                            'betta': -4.5
+                        }
                     }
                 }
             },
@@ -93,13 +99,15 @@ class MainScreen(QMainWindow):
                 'manual_methods': {
                     'Алгоритм CLAHE': {
                         'params': {
-                            'color_space': ['hsv', 'rgb', 'yuv'],
+                            'color_space': 'hsv',
                             'clip_limit': 6.5,
                             'tile_grid_size': (12, 12)
                         }
                     },
                     'Гистограммное выравнивание': {
-                        'params': {'color_space': ["hsv", "yuv"]}
+                        'params': {
+                            'color_space': 'hsv',
+                        }
                     }
                 }
             },
@@ -109,27 +117,27 @@ class MainScreen(QMainWindow):
                 'manual_methods': {
                     'Восстановление с помощью маски': {
                         'params': {
-                            'mask_mode': ['brightness', 'gradient', 'combine'],
-                            'color_space_mask': ['hsv', 'gray', 'yuv'],
-                            'color_space': ['yuv', 'rgb', 'hsv'],
+                            'mask_mode': 'brightness',
+                            'color_space_mask': 'hsv',
+                            'color_space': 'yuv',
                             'threshold': 160,
                             'inpaint_radius': 3,
-                            'inpaint_method': ['inpaint_ns', 'ipaint_telea'],
-                            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                            'inpaint_method': 'inpaint_ns',
+                            'gradient_method': 'sobel',
                             'gradient_threshold': 100
                         }
                     },
                     'Адаптивное восстановление': {
                         'params': {
-                            'mask_mode': ['brightness', 'gradient', 'combine'],
-                            'color_space_mask': ['hsv', 'gray', 'yuv'],
-                            'color_space': ['yuv', 'rgb', 'hsv'],
-                            'adaptive_method': ['gaussian', 'mean'],
+                            'mask_mode': 'brightness',
+                            'color_space_mask': 'hsv',
+                            'color_space': 'yuv',
+                            'adaptive_method': 'gaussian',
                             'block_size': 7,
                             'C': 5,
                             'inpaint_radius': 3,
-                            'inpaint_method': ['inpaint_ns', 'ipaint_telea'],
-                            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+                            'inpaint_method': 'inpaint_ns',
+                            'gradient_method': 'sobel',
                             'gradient_threshold': 100
                         }
                     }
@@ -140,20 +148,29 @@ class MainScreen(QMainWindow):
                 'automatic_method': 'Нелокальное среднее',
                 'manual_methods': {
                     'Фильтр среднего значения': {
-                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                        'params': {
+                            'estimate_noise': 'function', 
+                            'sigma': 3
+                        }
                     },
                     'Медианный фильтр': {
-                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                        'params': {
+                            'estimate_noise': 'function', 
+                            'sigma': 3
+                        }
                     },
                     'Фильтр Гаусса': {
-                        'params': {'estimate_noise': ['function', 'gaussian'], 'sigma': 3}
+                        'params': {
+                            'estimate_noise': 'function', 
+                            'sigma': 3
+                        }
                     },
                     'Вейвлет-обработка': {
                         'params': {
-                            'type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
-                            'mode': ['hard', 'soft'],
+                            'wavelet_type': 'haar',
+                            'wavelet_mode': 'hard',
                             'number_of_levels': 3,
-                            'estimate_noise': ['function', 'gaussian', 'wavelet'],
+                            'wavelet_estimate_noise': 'function',
                             'sigma': 3
                         }
                     },
@@ -166,6 +183,19 @@ class MainScreen(QMainWindow):
                     }
                 }
             }
+        }
+
+        self.allowed_params_values = {
+            'color_space': ['hsv', 'rgb', 'yuv'],
+            'mask_mode': ['brightness', 'gradient', 'combine'],
+            'color_space_mask': ['hsv', 'gray', 'yuv'],
+            'inpaint_method': ['inpaint_ns', 'inpaint_telea'],
+            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+            'adaptive_method': ['gaussian', 'mean'],
+            'estimate_noise': ['function', 'gaussian'], 
+            'wavelet_type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
+            'wavelet_mode': ['hard', 'soft'],
+            'wavelet_estimate_noise': ['function', 'gaussian', 'wavelet'],
         }
 
         # список дефектов для интерфейса (русские названия)
@@ -1274,7 +1304,7 @@ class MainScreen(QMainWindow):
         # получаем параметры для выбранного метода
         params = self.methods[defect_en]['manual_methods'][method_name]['params'].copy()
         
-        dialog = ParameterDialog(method_name, params, editable)
+        dialog = ParameterDialog(method_name, params, self.allowed_params_values, editable)
         if dialog.exec_() == QDialog.Accepted and editable:
             # сохраняем обновленные параметры
             self.methods[defect_en]['manual_methods'][method_name]['params'] = dialog.get_parameters()
@@ -1391,7 +1421,7 @@ class MainScreen(QMainWindow):
                         methods=processing_methods)
                 elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
                     self.processed_path, self.result = self.processor.recovery_image(
-                        processing_mode='automatic',
+                        processing_mode='manual',
                         defect_mode='all_defects',
                         methods=processing_methods)
         elif self.file_type.currentText() == 'Обработка видео':
