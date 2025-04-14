@@ -32,6 +32,8 @@ from backend.ProcessingClass import ProcessingClass
 
 PROJECT_ROOT = Path(__file__).parent.parent
 MODEL_PATH = PROJECT_ROOT / 'mobile_net_model.h5'
+YOLO_RAW_PATH = PROJECT_ROOT / 'yolo_raw.pt'
+YOLO_BEST_PATH = PROJECT_ROOT / 'yolo_best.pt'
 OUTPUT_PATH = PROJECT_ROOT / 'temp'
 
 class MainScreen(QMainWindow):
@@ -255,7 +257,7 @@ class MainScreen(QMainWindow):
         self.download_detect_button.setFixedHeight(50)
         self.download_detect_button.setStyleSheet(self.buttons_style)
         self.download_detect_button.setFont(self.font)
-        self.download_detect_button.clicked.connect(lambda: self.download_files(self.detect_path))
+        self.download_detect_button.clicked.connect(lambda: self.download_files(self.detected_path))
         left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
@@ -383,11 +385,11 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'detect_button'):
             self.detect_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         if hasattr(self, 'download_detect_button'):
-            self.download_detect_button.setEnabled(hasattr(self, 'detect_path') and self.detect_path is not None)
+            self.download_detect_button.setEnabled(hasattr(self, 'detected_path') and self.detected_path is not None)
         if hasattr(self, 'download_process_button'):
             self.download_process_button.setEnabled(hasattr(self, 'processed_path') and self.processed_path is not None)
         if hasattr(self, 'download_process_detect_button'):
-            self.download_process_detect_button.setEnabled(hasattr(self, 'processed_detect_path') and self.processed_detect_path is not None)
+            self.download_process_detect_button.setEnabled(hasattr(self, 'detected_processed_path') and self.detected_processed_path is not None)
 
     def download_files(self, path):
         downloads_dir = os.path.expanduser("~/Downloads")
@@ -396,11 +398,12 @@ class MainScreen(QMainWindow):
         counter = 1
         base_name, ext = os.path.splitext(file_name)
         while os.path.exists(save_path):
-            save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}{ext}")).replace("\\", "/")
+            save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}{ext}"))
             counter += 1
         try:
             shutil.copy2(path, save_path)
-            QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{save_path}")
+            display_path = save_path.replace("\\", "/")
+            QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{display_path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
     
@@ -447,6 +450,8 @@ class MainScreen(QMainWindow):
             self.processor = ProcessingClass(
                 input_path=self.file_path,
                 model_path=MODEL_PATH,
+                yolo_raw_path=YOLO_RAW_PATH,
+                yolo_best_path=YOLO_BEST_PATH,
                 output_path=OUTPUT_PATH
             )
             # обновляем состояние кнопок
@@ -634,8 +639,8 @@ class MainScreen(QMainWindow):
         # освобождает пути к обработанным и размеченным файлам
         if hasattr(self, 'processed_path'):
             del self.processed_path
-        if hasattr(self, 'detect_path'):
-            del self.detect_path
+        if hasattr(self, 'detected_path'):
+            del self.detected_path
         if hasattr(self, 'detect_processed_path'):
             del self.detect_processed_path
 
@@ -768,11 +773,17 @@ class MainScreen(QMainWindow):
         Открывает окно просмотра с полным изображением.
         """
         if side == 'left': 
-            if hasattr(self, 'file_path') and self.file_path:
+            if hasattr(self, 'file_path') and self.detected_path:
+                self.preview_window = PreviewWindowImage(self.detected_path)
+                self.preview_window.show()
+            elif hasattr(self, 'file_path') and self.file_path:
                 self.preview_window = PreviewWindowImage(self.file_path)
                 self.preview_window.show()
         elif side == 'right': 
-            if hasattr(self, 'processed_path') and self.processed_path:
+            if hasattr(self, 'processed_path') and self.detected_processed_path:
+                self.preview_window = PreviewWindowImage(self.detected_processed_path)
+                self.preview_window.show()
+            elif hasattr(self, 'processed_path') and self.processed_path:
                 self.preview_window = PreviewWindowImage(self.processed_path)
                 self.preview_window.show()
 
@@ -991,6 +1002,13 @@ class MainScreen(QMainWindow):
             item = self.right_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+
+        # удаляем ссылки на виджеты
+        for attr in ['results_table', 'detect_button', 
+                'download_process_button', 'download_process_detect_button']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+                
         # for i in reversed(range(self.right_layout.count())):
         #     widget = self.right_layout.itemAt(i).widget()
         #     if widget:
@@ -1073,7 +1091,7 @@ class MainScreen(QMainWindow):
         self.detect_button.setFixedHeight(50)
         self.detect_button.setStyleSheet(self.buttons_style)
         self.detect_button.setFont(self.font)
-        # self.process_button.clicked.connect(self.detect_objects)
+        self.detect_button.clicked.connect(self.detect_objects)
         self.right_layout.addWidget(self.detect_button)
 
         # создаем контейнер под кнопки скачивания
@@ -1097,7 +1115,7 @@ class MainScreen(QMainWindow):
         self.download_process_detect_button.setFixedHeight(100)
         self.download_process_detect_button.setStyleSheet(self.buttons_style)
         self.download_process_detect_button.setFont(self.font)
-        self.download_process_detect_button.clicked.connect(lambda: self.download_files(self.processed_detect_path))
+        self.download_process_detect_button.clicked.connect(lambda: self.download_files(self.detected_processed_path))
         # self.process_button.clicked.connect(self.detect_objects)
         right_download_buttons_layout.addWidget(self.download_process_detect_button)
 
@@ -1366,4 +1384,30 @@ class MainScreen(QMainWindow):
             self.add_right_side_additional_elements()
             self.update_results_table()
             self.update_buttons_state()
-            
+
+    
+    # =========================================================================
+    # РАСПОЗНАВАНИЕ ОБЪЕКТОВ
+    # =========================================================================
+
+    def detect_objects(self):
+        print('front_detect')
+        self.detected_path = self.processor.detect_image(detect_type='raw')
+        self.detected_processed_path = self.processor.detect_image(detect_type='best')
+
+        # очищаем области отображения файлов
+        if hasattr(self, 'file_layout'):
+            self.delete_files_widgets('left')
+        if hasattr(self, 'result_layout'):
+            self.delete_files_widgets('right')
+        
+        # отображаем исходное размеченное изображение слева
+        if self.detected_path and os.path.exists(self.detected_path):
+            self.display_image(file_path=self.detected_path, close=True, side='left')
+        
+        # отображаем обработанное размеченное изображение справа
+        if self.detected_processed_path and os.path.exists(self.detected_processed_path):
+            self.display_image(file_path=self.detected_processed_path, close=False, side='right')
+        
+        # обновляем состояние кнопок
+        self.update_buttons_state()

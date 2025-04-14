@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 import tensorflow as tf  
+from ultralytics import YOLO
 # from tensorflow.keras.preprocessing import image
 import numpy as np
 import pywt
@@ -12,13 +13,17 @@ import tempfile
 import shutil
 
 class ProcessingClass:
-    def __init__(self, input_path, model_path, output_path):
+    def __init__(self, input_path, model_path, yolo_raw_path, yolo_best_path, output_path):
         self.input_path = input_path
         self.model_path = model_path
+        self.yolo_raw_path = yolo_raw_path
+        self.yolo_best_path = yolo_best_path
         self.output_path = output_path
         # self.processing_mode = processing_mode
 
         self.model = tf.keras.models.load_model(self.model_path)
+        self.yolo_raw_model = YOLO(self.yolo_raw_path)
+        self.yolo_best_model = YOLO(self.yolo_best_path)
 
     def cleanup(self):
         """
@@ -685,13 +690,13 @@ class ProcessingClass:
         Восстановление изображения.
         """
         try:
-            input_image = self.__cv2_imread_unicode(self.input_path)
-            if input_image is None: return None, None
+            self.input_image = self.__cv2_imread_unicode(self.input_path)
+            if self.input_image is None: return None, None
 
             if processing_mode == 'automatic':
-                processed_image, result = self.automatic_recovery_image(input_image, defect_mode)
+                self.processed_image, result = self.automatic_recovery_image(self.input_image, defect_mode)
             elif processing_mode == 'manual':
-                processed_image, result = self.manual_recovery_image(input_image, methods, defect_mode)
+                self.processed_image, result = self.manual_recovery_image(self.input_image, methods, defect_mode)
 
             # формируем необходимое название для сохранения
             original_filename = os.path.basename(self.input_path)
@@ -699,7 +704,7 @@ class ProcessingClass:
             processed_filename = f"processed_{name}{ext}"
             processed_path = os.path.join(self.output_path, processed_filename)
 
-            if self.__cv2_imwrite_unicode(processed_path, processed_image):
+            if self.__cv2_imwrite_unicode(processed_path, self.processed_image):
                 return processed_path, result
         except:
             return None, None
@@ -899,5 +904,134 @@ class ProcessingClass:
                 if not self.__cv2_imwrite_unicode(processed_path, processed_image):
                     return None
             return processed_folder_path
+        except:
+            return None
+        
+    
+    # ================================================================================
+    # ФУНКЦИИ ДЛЯ ДЕТЕКЦИИ ОБЪЕКТОВ
+    # ================================================================================
+
+    def detect_objects(self, image, detect_type, confidence_threshold):
+        # raw_results = self.yolo_raw_model(input_image)
+        # best_results = self.yolo_best_model(input_image)
+        print('detect_objects')
+        if detect_type == 'raw':
+            model = self.yolo_raw_model
+        elif detect_type == 'best':
+            model = self.yolo_best_model
+
+        print(11)
+
+        result_image = image.copy()
+        results = model(image)
+        for result in results:
+            print(12)
+            boxes = result.boxes
+            for box in boxes:
+                print(13)
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                
+                confidence = box.conf[0].item()
+                class_id = box.cls[0].item()
+                class_name = model.names[int(class_id)]
+                print(14)
+
+                if confidence >= confidence_threshold:
+                    # рисуем прямоугольник
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                    color = (0, 255, 0)
+                    thickness = 1
+                    cv2.rectangle(result_image, (x1, y1), (x2, y2), color, thickness)
+                    
+                    # создаем подпись
+                    label = f"{class_name}: {confidence:.2f}"
+                    
+                    # устанавливаем шрифт
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    font_scale = 0.3
+                    text_thickness = 1
+                    (text_width, text_height), _ = cv2.getTextSize(label, font, font_scale, text_thickness)
+                    
+                    # рисуем подложку для текста
+                    cv2.rectangle(result_image, (x1, y1 - text_height - 10), (x1 + text_width, y1), color, -1)
+                    
+                    # рисуем текст
+                    cv2.putText(result_image, label, (x1, y1 - 5), font, font_scale, (0, 0, 0), text_thickness)
+
+                    print(15)        
+        
+        return result_image
+
+        # def draw_boxes(model, results):
+        #     result_image = input_image.copy()
+        #     for result in results:
+        #         boxes = result.boxes
+        #         for box in boxes:
+        #             x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    
+        #             confidence = box.conf[0].item()
+        #             class_id = box.cls[0].item()
+        #             class_name = model.names[int(class_id)]
+
+        #             if confidence >= confidence_threshold:
+        #                 # рисуем прямоугольник
+        #                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        #                 color = (0, 255, 0)
+        #                 thickness = 2
+        #                 cv2.rectangle(result_image, (x1, y1), (x2, y2), color, thickness)
+                        
+        #                 # создаем подпись
+        #                 label = f"{class_name}: {confidence:.2f}"
+                        
+        #                 # устанавливаем шрифт
+        #                 font = cv2.FONT_HERSHEY_SIMPLEX
+        #                 font_scale = 0.7
+        #                 text_thickness = 2
+        #                 (text_width, text_height), _ = cv2.getTextSize(label, font, font_scale, text_thickness)
+                        
+        #                 # рисуем подложку для текста
+        #                 cv2.rectangle(result_image, (x1, y1 - text_height - 10), (x1 + text_width, y1), color, -1)
+                        
+        #                 # рисуем текст
+        #                 cv2.putText(result_image, label, (x1, y1 - 5), font, font_scale, (0, 0, 0), text_thickness)
+            
+        #     return result_image
+        
+        # detect_raw_image = draw_boxes(self.yolo_raw_model, raw_results)
+        # detect_best_image = draw_boxes(self.yolo_best_model, best_results)
+
+        # return (detect_raw_image, detect_best_image)
+    
+    def detect_image(self, detect_type):
+        print('detect_image')
+        try:
+            # определяем, какое изображение нужно размечать: исходное или исправленное
+            if detect_type == 'raw':
+                image = self.input_image
+            elif detect_type == 'best':
+                image = self.processed_image    
+            if image is None: return None
+
+            print(1)
+
+            # распознаем объекты
+            self.detected_image = self.detect_objects(image=image, detect_type=detect_type, confidence_threshold=0.55)
+
+            print(2)
+
+            # формируем необходимое название для сохранения
+            original_filename = os.path.basename(self.input_path)
+            name, ext = os.path.splitext(original_filename)
+            if detect_type == 'raw': 
+                processed_filename = f"detected_{name}{ext}"
+            elif detect_type == 'best': 
+                processed_filename = f"detected_processed_{name}{ext}"
+            detected_path = os.path.join(self.output_path, processed_filename)
+
+            print(3)
+
+            if self.__cv2_imwrite_unicode(detected_path, self.detected_image):
+                return detected_path
         except:
             return None
