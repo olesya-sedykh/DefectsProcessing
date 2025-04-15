@@ -690,22 +690,22 @@ class ProcessingClass:
         Восстановление изображения.
         """
         try:
-            self.input_image = self.__cv2_imread_unicode(self.input_path)
-            if self.input_image is None: return None, None
+            input_image = self.__cv2_imread_unicode(self.input_path)
+            if input_image is None: return None, None
 
             if processing_mode == 'automatic':
-                self.processed_image, result = self.automatic_recovery_image(self.input_image, defect_mode)
+                self.processed_image, result = self.automatic_recovery_image(input_image, defect_mode)
             elif processing_mode == 'manual':
-                self.processed_image, result = self.manual_recovery_image(self.input_image, methods, defect_mode)
+                self.processed_image, result = self.manual_recovery_image(input_image, methods, defect_mode)
 
             # формируем необходимое название для сохранения
             original_filename = os.path.basename(self.input_path)
             name, ext = os.path.splitext(original_filename)
             processed_filename = f"processed_{name}{ext}"
-            processed_path = os.path.join(self.output_path, processed_filename)
+            self.processed_path = os.path.join(self.output_path, processed_filename)
 
-            if self.__cv2_imwrite_unicode(processed_path, self.processed_image):
-                return processed_path, result
+            if self.__cv2_imwrite_unicode(self.processed_path, self.processed_image):
+                return self.processed_path, result
         except:
             return None, None
         
@@ -725,8 +725,8 @@ class ProcessingClass:
             print(1)
             # формируем необходимое название для сохранения
             video_name = Path(self.input_path).stem
-            processed_video_name = f"processed_{video_name}.mp4"
-            processed_video_path = str(Path(self.output_path) / processed_video_name)
+            processed_name = f"processed_{video_name}.mp4"
+            self.processed_path = str(Path(self.output_path) / processed_name)
             
             print(2)
             # открываем видео
@@ -743,7 +743,7 @@ class ProcessingClass:
             print(4)
             # создаем VideoWriter для сохранения результата
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(processed_video_path, fourcc, fps, (width, height))
+            out = cv2.VideoWriter(self.processed_path, fourcc, fps, (width, height))
             
             print(5)
             # обрабатываем каждый кадр
@@ -785,7 +785,7 @@ class ProcessingClass:
             print('main_results', main_results)
             
             print(8)
-            return (processed_video_path, main_results)
+            return (self.processed_path, main_results)
         
         except Exception as e:
             return None, None
@@ -913,8 +913,6 @@ class ProcessingClass:
     # ================================================================================
 
     def detect_objects(self, image, detect_type, confidence_threshold):
-        # raw_results = self.yolo_raw_model(input_image)
-        # best_results = self.yolo_best_model(input_image)
         print('detect_objects')
         if detect_type == 'raw':
             model = self.yolo_raw_model
@@ -962,61 +960,25 @@ class ProcessingClass:
                     print(15)        
         
         return result_image
-
-        # def draw_boxes(model, results):
-        #     result_image = input_image.copy()
-        #     for result in results:
-        #         boxes = result.boxes
-        #         for box in boxes:
-        #             x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    
-        #             confidence = box.conf[0].item()
-        #             class_id = box.cls[0].item()
-        #             class_name = model.names[int(class_id)]
-
-        #             if confidence >= confidence_threshold:
-        #                 # рисуем прямоугольник
-        #                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-        #                 color = (0, 255, 0)
-        #                 thickness = 2
-        #                 cv2.rectangle(result_image, (x1, y1), (x2, y2), color, thickness)
-                        
-        #                 # создаем подпись
-        #                 label = f"{class_name}: {confidence:.2f}"
-                        
-        #                 # устанавливаем шрифт
-        #                 font = cv2.FONT_HERSHEY_SIMPLEX
-        #                 font_scale = 0.7
-        #                 text_thickness = 2
-        #                 (text_width, text_height), _ = cv2.getTextSize(label, font, font_scale, text_thickness)
-                        
-        #                 # рисуем подложку для текста
-        #                 cv2.rectangle(result_image, (x1, y1 - text_height - 10), (x1 + text_width, y1), color, -1)
-                        
-        #                 # рисуем текст
-        #                 cv2.putText(result_image, label, (x1, y1 - 5), font, font_scale, (0, 0, 0), text_thickness)
-            
-        #     return result_image
-        
-        # detect_raw_image = draw_boxes(self.yolo_raw_model, raw_results)
-        # detect_best_image = draw_boxes(self.yolo_best_model, best_results)
-
-        # return (detect_raw_image, detect_best_image)
     
-    def detect_image(self, detect_type):
+    def detect_image(self, detect_type, confidence_threshold=0.55):
+        """\
+        Нахождение объектов на изображении.
+        detect_type - тип изображения (модели): исходный или обработанный (raw, best).
+        """
         print('detect_image')
         try:
             # определяем, какое изображение нужно размечать: исходное или исправленное
             if detect_type == 'raw':
-                image = self.input_image
+                image = self.__cv2_imread_unicode(self.input_path)
             elif detect_type == 'best':
-                image = self.processed_image    
+                image = self.__cv2_imread_unicode(self.processed_path) 
             if image is None: return None
 
             print(1)
 
             # распознаем объекты
-            self.detected_image = self.detect_objects(image=image, detect_type=detect_type, confidence_threshold=0.55)
+            self.detected_image = self.detect_objects(image=image, detect_type=detect_type, confidence_threshold=confidence_threshold)
 
             print(2)
 
@@ -1034,4 +996,67 @@ class ProcessingClass:
             if self.__cv2_imwrite_unicode(detected_path, self.detected_image):
                 return detected_path
         except:
+            return None
+        
+    def detect_video(self, detect_type, confidence_threshold=0.55):
+        """
+        Нахождение объектов на видео.
+        detect_type - тип видео (модели): исходный или обработанный (raw, best).
+        """
+        try:
+            print(1)
+            # формируем необходимое название для сохранения
+            video_name = Path(self.input_path).stem
+            if detect_type == 'raw':
+                detected_video_name = f"detected_{video_name}.mp4"
+            elif detect_type == 'best':
+                detected_video_name = f"detected_processed_{video_name}.mp4"
+            detected_path = str(Path(self.output_path) / detected_video_name)
+            
+            print(2)
+            # определяем, какое видео нужно размечать: исходное или исправленное
+            if detect_type == 'raw':
+                cap = cv2.VideoCapture(self.input_path)
+            elif detect_type == 'best':
+                cap = cv2.VideoCapture(self.processed_path)
+            if not cap.isOpened(): return None
+            
+            print(3)
+            # получаем параметры видео
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            
+            print(4)
+            # создаем VideoWriter для сохранения результата
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(detected_path, fourcc, fps, (width, height))
+            
+            print(5)
+            # обрабатываем каждый кадр
+            while True:
+                print(6)
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # конвертируем BGR (OpenCV) в RGB (для методов обработки)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                # распознаем объекты
+                detected_frame = self.detect_objects(image=rgb_frame, detect_type=detect_type, confidence_threshold=confidence_threshold)
+                
+                # конвертируем обратно в BGR для сохранения
+                bgr_frame = cv2.cvtColor(detected_frame, cv2.COLOR_RGB2BGR)
+                out.write(bgr_frame)
+            
+            print(7)
+            # освобождаем ресурсы
+            cap.release()
+            out.release()
+            
+            print(8)
+            return detected_path
+        
+        except Exception as e:
             return None

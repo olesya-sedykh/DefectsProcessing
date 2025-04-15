@@ -606,10 +606,15 @@ class MainScreen(QMainWindow):
                 if hasattr(self, attr):
                     delattr(self, attr)
 
-        for i in reversed(range(layout.count())):
-            widget = layout.itemAt(i).widget()
-            if widget: 
-                widget.deleteLater()
+        if layout:
+            # удаляем все виджеты из layout
+            for i in reversed(range(layout.count())):
+                widget = layout.itemAt(i).widget()
+                if widget: 
+                    widget.deleteLater()
+
+            # удаляем ссылку на layout
+            del layout
     
     def clear(self):
         """
@@ -773,14 +778,14 @@ class MainScreen(QMainWindow):
         Открывает окно просмотра с полным изображением.
         """
         if side == 'left': 
-            if hasattr(self, 'file_path') and self.detected_path:
+            if hasattr(self, 'detected_path') and self.detected_path:
                 self.preview_window = PreviewWindowImage(self.detected_path)
                 self.preview_window.show()
             elif hasattr(self, 'file_path') and self.file_path:
                 self.preview_window = PreviewWindowImage(self.file_path)
                 self.preview_window.show()
         elif side == 'right': 
-            if hasattr(self, 'processed_path') and self.detected_processed_path:
+            if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
                 self.preview_window = PreviewWindowImage(self.detected_processed_path)
                 self.preview_window.show()
             elif hasattr(self, 'processed_path') and self.processed_path:
@@ -980,10 +985,16 @@ class MainScreen(QMainWindow):
         Открывает окно просмотра с полным видео.
         """
         if side == 'left': 
+            if hasattr(self, 'detected_path') and self.detected_path:
+                self.preview_window = PreviewWindowVideo(self.detected_path)
+                self.preview_window.show()
             if hasattr(self, 'file_path') and self.file_path:
                 self.preview_window = PreviewWindowVideo(self.file_path)
                 self.preview_window.show()
         elif side == 'right': 
+            if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
+                self.preview_window = PreviewWindowVideo(self.detected_processed_path)
+                self.preview_window.show()
             if hasattr(self, 'processed_path') and self.processed_path:
                 self.preview_window = PreviewWindowVideo(self.processed_path)
                 self.preview_window.show()
@@ -1392,8 +1403,15 @@ class MainScreen(QMainWindow):
 
     def detect_objects(self):
         print('front_detect')
-        self.detected_path = self.processor.detect_image(detect_type='raw')
-        self.detected_processed_path = self.processor.detect_image(detect_type='best')
+        if self.file_type.currentText() == 'Обработка изображения':
+            self.detected_path = self.processor.detect_image(detect_type='raw')
+            self.detected_processed_path = self.processor.detect_image(detect_type='best')
+        elif self.file_type.currentText() == 'Обработка видео':
+            self.detected_path = self.processor.detect_video(detect_type='raw')
+            self.detected_processed_path = self.processor.detect_video(detect_type='best')
+        elif self.file_type.currentText() == 'Обработка датасета':
+            self.detected_path = self.processor.detect_dataset(detect_type='raw')
+            self.detected_processed_path = self.processor.detect_dataset(detect_type='best')
 
         # очищаем области отображения файлов
         if hasattr(self, 'file_layout'):
@@ -1401,13 +1419,23 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'result_layout'):
             self.delete_files_widgets('right')
         
-        # отображаем исходное размеченное изображение слева
+        # отображаем исходный размеченный файл слева
         if self.detected_path and os.path.exists(self.detected_path):
-            self.display_image(file_path=self.detected_path, close=True, side='left')
+            if self.file_type.currentText() == 'Обработка изображения':
+                self.display_image(file_path=self.detected_path, close=True, side='left')
+            elif self.file_type.currentText() == 'Обработка видео':
+                self.display_video(file_path=self.detected_path, close=True, side='left')
+            elif self.file_type.currentText() == 'Обработка датасета':
+                self.display_dataset(file_path=self.detected_path, close=True, side='left')
         
-        # отображаем обработанное размеченное изображение справа
+        # отображаем обработанный размеченный файл справа
         if self.detected_processed_path and os.path.exists(self.detected_processed_path):
-            self.display_image(file_path=self.detected_processed_path, close=False, side='right')
+            if self.file_type.currentText() == 'Обработка изображения':
+                self.display_image(file_path=self.detected_processed_path, close=False, side='right')
+            elif self.file_type.currentText() == 'Обработка видео':
+                self.display_video(file_path=self.detected_processed_path, close=False, side='right')
+            elif self.file_type.currentText() == 'Обработка датасета':
+                self.display_dataset(file_path=self.detected_processed_path, close=False, side='right')
         
         # обновляем состояние кнопок
         self.update_buttons_state()
