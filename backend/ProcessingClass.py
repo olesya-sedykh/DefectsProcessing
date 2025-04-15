@@ -923,6 +923,21 @@ class ProcessingClass:
 
         result_image = image.copy()
         results = model(image)
+        class_colors = [
+            (255, 0, 0),    # Красный (класс 0)
+            (0, 255, 255),    # Зеленый (класс 1)
+            (0, 0, 255),    # Синий (класс 2)
+            (255, 255, 0),  # Голубой (класс 3)
+            (255, 0, 255),  # Фиолетовый (класс 4)
+            (0, 255, 0),  # Желтый (класс 5)
+            (128, 0, 0),    # Темно-красный (класс 6)
+            (0, 128, 0),    # Темно-зеленый (класс 7)
+            (0, 0, 128),    # Темно-синий (класс 8)
+            (128, 128, 0),  # Оливковый (класс 9)
+            (128, 0, 128),  # Пурпурный (класс 10)
+            (0, 128, 128)   # Бирюзовый (класс 11)
+        ]
+
         for result in results:
             print(12)
             boxes = result.boxes
@@ -938,7 +953,7 @@ class ProcessingClass:
                 if confidence >= confidence_threshold:
                     # рисуем прямоугольник
                     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                    color = (0, 255, 0)
+                    color = class_colors[int(class_id)]
                     thickness = 1
                     cv2.rectangle(result_image, (x1, y1), (x2, y2), color, thickness)
                     
