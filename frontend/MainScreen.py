@@ -890,14 +890,14 @@ class MainScreen(QMainWindow):
             if hasattr(self, 'detected_path') and self.detected_path:
                 self.preview_window = PreviewWindowVideo(self.detected_path)
                 self.preview_window.show()
-            if hasattr(self, 'file_path') and self.file_path:
+            elif hasattr(self, 'file_path') and self.file_path:
                 self.preview_window = PreviewWindowVideo(self.file_path)
                 self.preview_window.show()
         elif side == 'right': 
             if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
                 self.preview_window = PreviewWindowVideo(self.detected_processed_path)
                 self.preview_window.show()
-            if hasattr(self, 'processed_path') and self.processed_path:
+            elif hasattr(self, 'processed_path') and self.processed_path:
                 self.preview_window = PreviewWindowVideo(self.processed_path)
                 self.preview_window.show()
 
