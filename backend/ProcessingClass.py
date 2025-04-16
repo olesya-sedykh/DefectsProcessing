@@ -13,8 +13,9 @@ import tempfile
 import shutil
 
 class ProcessingClass:
-    def __init__(self, input_path, model_path, yolo_raw_path, yolo_best_path, output_path):
-        self.input_path = input_path
+    # def __init__(self, input_path, model_path, yolo_raw_path, yolo_best_path, output_path):
+    def __init__(self, model_path, yolo_raw_path, yolo_best_path, output_path):
+        # self.input_path = input_path
         self.model_path = model_path
         self.yolo_raw_path = yolo_raw_path
         self.yolo_best_path = yolo_best_path
@@ -25,6 +26,239 @@ class ProcessingClass:
         self.yolo_raw_model = YOLO(self.yolo_raw_path)
         self.yolo_best_model = YOLO(self.yolo_best_path)
 
+        self.__auto_methods = {
+            'blur': {
+                'defect_name': 'Размытие',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': True,
+                        'params': None
+                    }
+                }
+            },
+            'contrast': {
+                'defect_name': 'Контрастность',
+                'methods': {
+                    'hist_equalization': {
+                        'method_name': 'Гистограммное выравнивание',
+                        'link': self.hist_equalization,
+                        'checked': True,
+                        'params': {
+                            'color_space_hist': 'hsv'
+                        }
+                    }
+                }
+            },
+            'glares': {
+                'defect_name': 'Блики',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': True,
+                        'params': None
+                    }
+                }
+            },
+            'noise': {
+                'defect_name': 'Шум',
+                'methods': {
+                    'adaptive_average_filter': {
+                        'method_name': 'Фильтр среднего значения',
+                        'link': self.adaptive_average_filter,
+                        'checked': True,
+                        'params': {
+                            'estimate_noise': 'gaussian',
+                            'sigma': 5
+                        }
+                    }
+                }
+            }
+        }
+
+        self.__manual_methods = {
+            'blur': {
+                'defect_name': 'Размытие',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': False,
+                        'params': None
+                    },
+                    'unsharp_masking': {
+                        'method_name': 'Повышение резкости',
+                        'link': self.unsharp_masking,
+                        'checked': True,
+                        'params': {
+                            'sigma': 3, 
+                            'alpha': 5.5, 
+                            'betta': -4.5
+                        }
+                    },
+                    'laplacian_sharpening': {
+                        'method_name': 'Фильтр Лапласа',
+                        'link': self.laplacian_sharpening,
+                        'checked': False,
+                        'params': {
+                            'coeff': 6
+                        }
+                    }
+                }
+            },
+            'contrast': {
+                'defect_name': 'Контрастность',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': False,
+                        'params': None
+                    },
+                    'hist_equalization': {
+                        'method_name': 'Гистограммное выравнивание',
+                        'link': self.hist_equalization,
+                        'checked': True,
+                        'params': {
+                            'color_space_hist': 'hsv'
+                        }
+                    },
+                    'clahe_algorithm': {
+                        'method_name': 'Алгоритм CLAHE',
+                        'link': self.clahe_algorithm,
+                        'checked': False,
+                        'params': {
+                            'color_space_hist': 'hsv',
+                            'clip_limit': 6.5,
+                            'tile_grid_size': (12, 12)
+                        }
+                    }
+                }
+            },
+            'glares': {
+                'defect_name': 'Блики',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': False,
+                        'params': None
+                    },
+                    'glares_inpaint': {
+                        'method_name': 'Простое восстановление',
+                        'link': self.glares_inpaint,
+                        'checked': True,
+                        'params': {
+                            'mask_mode': 'brightness',
+                            'color_space_mask': 'hsv',
+                            'color_space': 'yuv',
+                            'threshold': 160,
+                            'inpaint_radius': 3,
+                            'flags': 'inpaint_ns',
+                            'gradient_method': 'sobel',
+                            'gradient_threshold': 100
+                        }
+                    },
+                    'adaptive_glares_inpaint': {
+                        'method_name': 'Адаптивное восстановление',
+                        'link': self.adaptive_glares_inpaint,
+                        'checked': False,
+                        'params': {
+                            'mask_mode': 'brightness',
+                            'color_space_mask': 'hsv',
+                            'color_space': 'yuv',
+                            'adaptive_method': 'gaussian',
+                            'block_size': 7,
+                            'C': 5,
+                            'inpaint_radius': 3,
+                            'flags': 'inpaint_ns',
+                            'gradient_method': 'sobel',
+                            'gradient_threshold': 100
+                        }
+                    }
+                }
+            },
+            'noise': {
+                'defect_name': 'Шум',
+                'methods': {
+                    'no_process': {
+                        'method_name': 'Не исправлять',
+                        'link': None,
+                        'checked': False,
+                        'params': None
+                    },
+                    'adaptive_average_filter': {
+                        'method_name': 'Фильтр среднего значения',
+                        'link': self.adaptive_average_filter,
+                        'checked': True,
+                        'params': {
+                            'estimate_noise': 'gaussian',
+                            'sigma': 5
+                        }
+                    },
+                    'adaptive_median_filter': {
+                        'method_name': 'Медианный фильтр',
+                        'link': self.adaptive_median_filter,
+                        'checked': False,
+                        'params': {
+                            'estimate_noise': 'gaussian',
+                            'sigma': 5
+                        }
+                    },
+                    'adaptive_gaussian_filter': {
+                        'method_name': 'Фильтр Гаусса',
+                        'link': self.adaptive_gaussian_filter,
+                        'checked': False,
+                        'params': {
+                            'estimate_noise': 'gaussian',
+                            'sigma': 5
+                        }
+                    },
+                    'wavelet_processing_color': {
+                        'method_name': 'Вейвлет-обработка',
+                        'link': self.wavelet_processing_color,
+                        'checked': False,
+                        'params': {
+                            'wavelet_type': 'haar',
+                            'wavelet_mode': 'hard',
+                            'number_of_levels': 3,
+                            'wavelet_estimate_noise': 'function',
+                            'sigma': 3
+                        }
+                    },
+                    'non_local_means': {
+                        'method_name': 'Нелокальное среднее',
+                        'link': self.non_local_means,
+                        'checked': False,
+                        'params': {
+                            'h': 10,
+                            'template_window_size': 7,
+                            'search_window_size': 21
+                        }
+                    },
+                }
+            }
+        }
+
+        self.__allowed_params_values = {
+            'color_space_hist': ['hsv', 'yuv'],
+            'color_space': ['hsv', 'rgb', 'yuv'],
+            'mask_mode': ['brightness', 'gradient', 'combine'],
+            'color_space_mask': ['hsv', 'gray', 'yuv'],
+            'flags': ['inpaint_ns', 'inpaint_telea'],
+            'gradient_method': ['sobel', 'scharr', 'laplacian'],
+            'adaptive_method': ['gaussian', 'mean'],
+            'estimate_noise': ['function', 'gaussian'], 
+            'wavelet_type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
+            'wavelet_mode': ['hard', 'soft'],
+            'wavelet_estimate_noise': ['function', 'gaussian', 'wavelet'],
+        }
+
+    def set_input_path(self, input_path):
+        self.input_path = input_path
+    
     def cleanup(self):
         """
         Явное освобождение ресурсов.
@@ -32,11 +266,23 @@ class ProcessingClass:
         if hasattr(self, 'model'):
             del self.model
 
+    def get_allowed_params(self):
+        return self.__allowed_params_values
+    
+    def get_auto_methods(self):
+        return self.__auto_methods
+    
+    def get_manual_methods(self):
+        return self.__manual_methods
+    
+    def set_manual_methods(self, manual_methods):
+        self.__manual_methods = manual_methods
+
     # ================================================================================
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ РАЗМЫТЫХ ИЗОБРАЖЕНИЙ
     # ================================================================================
 
-    def unsharp_masking(self, image, sigma=3, coeffs=(2.5, -1.5)):
+    def unsharp_masking(self, image, sigma=3, alpha=2.5, betta=-1.5):
         """
         Восстановление путем вычитания размытого из исходного.
         На вход подается исходное, которое размыто,
@@ -44,8 +290,9 @@ class ProcessingClass:
         Затем разность прибавляется к исходному размытому - для увеличения резкости.
         Принимает коэффициенты: положительный и отрицательный. Их сумма должна быть равна 1.
         """
+        print('unsharp_masking')
         blurred_image = cv2.GaussianBlur(image, (0, 0), sigmaX=sigma)
-        sharpened_image = cv2.addWeighted(image, coeffs[0], blurred_image, coeffs[1], 0)
+        sharpened_image = cv2.addWeighted(image, alpha, blurred_image, betta, 0)
         return sharpened_image
     
     def laplacian_sharpening(self, image, coeff=3):
@@ -62,40 +309,41 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ НИЗКОКОНТРАСТНЫХ ИЗОБРАЖЕНИЙ
     # ================================================================================
 
-    def hist_equalization(self, image, color_space):
+    def hist_equalization(self, image, color_space_hist):
         """
         Выполняет гистограммное выравнивание - сначала преобразует картинку в нужное цветовое пространство, 
         а затем применяет преобразование лишь к каналу яркости.
         """
-        if color_space == 'yuv':
+        if color_space_hist == 'yuv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
             channels = list(cv2.split(converted_image))
             index = 0  # Y-канал (яркость)
-        elif color_space == 'hsv':
+        elif color_space_hist == 'hsv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             channels = list(cv2.split(converted_image))
             index = 2  # V-канал (яркость)
 
         channels[index] = cv2.equalizeHist(channels[index])
         image_hist = cv2.merge(channels)
-        if color_space == 'yuv':
+        if color_space_hist == 'yuv':
             image_hist = cv2.cvtColor(image_hist, cv2.COLOR_YUV2BGR)
-        elif color_space == 'hsv':
+        elif color_space_hist == 'hsv':
             image_hist = cv2.cvtColor(image_hist, cv2.COLOR_HSV2BGR)
 
         return image_hist
     
-    def clahe_algorithm(self, image, color_space, clip_limit, tile_grid_size):
+    def clahe_algorithm(self, image, color_space_hist, clip_limit, tile_grid_size):
         """
         Разбивает изображение на квадраты, и выполняет гистограммное выравнивание внутри каждого
         а перед этим еще в соответствии с clip_limit выбросы гистограммы обрезаются и раскидываются 
         по остальным столбикам.
         """
-        if color_space == 'yuv':
+        print('clahe')
+        if color_space_hist == 'yuv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
             channels = list(cv2.split(converted_image))
             index = 0  # Y-канал (яркость)
-        elif color_space == 'hsv':
+        elif color_space_hist == 'hsv':
             converted_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             channels = list(cv2.split(converted_image))
             index = 2  # V-канал (яркость)
@@ -104,9 +352,9 @@ class ProcessingClass:
         channels[index] = clahe.apply(channels[index])
 
         image_clahe = cv2.merge(channels)
-        if color_space == 'yuv':
+        if color_space_hist == 'yuv':
             image_clahe = cv2.cvtColor(image_clahe, cv2.COLOR_YUV2BGR)
-        elif color_space == 'hsv':
+        elif color_space_hist == 'hsv':
             image_clahe = cv2.cvtColor(image_clahe, cv2.COLOR_HSV2BGR)
 
         return image_clahe
@@ -142,6 +390,10 @@ class ProcessingClass:
         gradient_threshold: порог для создания маски на основе градиента.
         mask_mode: режим создания маски ('brightness', 'gradient', 'combine').
         """
+
+        print('color_space_mask', color_space_mask, 'color_space', color_space, 'threshold', threshold, 'inpaint_radius',
+              inpaint_radius, 'flags', flags, 'mask_mode', mask_mode, 'gradient_method', gradient_method, 'gradient_threshold',
+              gradient_threshold)
 
         if flags == 'inpaint_ns': inpaint_mode = cv2.INPAINT_NS
         elif flags == 'inpaint_telea': inpaint_mode = cv2.INPAINT_TELEA
@@ -521,17 +773,86 @@ class ProcessingClass:
 
         return [predicted_class, predicted_property]
 
-    def get_paths(self, image_name):
-        """
-        Возвращает исходный и выходной путь к изображению или кадру.
-        """
-        input_path = os.path.join(self.input_path, image_name)
-        input_image_name_with_extension = os.path.basename(input_path)
-        input_image_name, input_image_extension = os.path.splitext(input_image_name_with_extension)
-        processed_image_name = input_image_name + 'processed' + input_image_extension
-        output_path = os.path.join(self.output_path, processed_image_name)
+    # def get_paths(self, image_name):
+    #     """
+    #     Возвращает исходный и выходной путь к изображению или кадру.
+    #     """
+    #     input_path = os.path.join(self.input_path, image_name)
+    #     input_image_name_with_extension = os.path.basename(input_path)
+    #     input_image_name, input_image_extension = os.path.splitext(input_image_name_with_extension)
+    #     processed_image_name = input_image_name + 'processed' + input_image_extension
+    #     output_path = os.path.join(self.output_path, processed_image_name)
 
-        return (input_path, output_path)
+    #     return (input_path, output_path)
+
+    def recovery(self, input_image, processing_mode, defect_mode):
+        print('recovery')
+
+        # словарь с результатами
+        results = {
+            'blur': [0, 0],
+            'contrast': [0, 0],
+            'glares': [0, 0],
+            'noise': [0, 0]
+        }
+
+        # применение методов
+        def apply_methods(predicted_class):
+            # определяем, каким словарем будем пользоваться
+            if processing_mode == 'automatic':
+                methods = self.__auto_methods
+            elif processing_mode == 'manual':
+                methods = self.__manual_methods
+            
+            # все методы по данному дефекту
+            defect_methods = methods[predicted_class]['methods']
+            # находим метод, который выбран и применяем его
+            for defect_method_key, defect_method_content in defect_methods.items():
+                if defect_method_content['checked']:
+                    print(defect_method_content)
+                    if defect_method_key == 'no_process':
+                        return input_image.copy()
+                    defect_method_link = defect_method_content['link']
+                    params = defect_method_content['params']
+                    print(params)
+                    processed_image = defect_method_link(input_image, **params)
+
+            return processed_image
+
+        if defect_mode == 'one_defect':
+            predicted_class = self.determine_class(input_image)[0]
+            if predicted_class != 'good': results[predicted_class][0] += 1
+
+            processed_image = apply_methods(predicted_class)
+            processed_predicted_class = self.determine_class(processed_image)[0]
+            if processed_predicted_class == 'good' and predicted_class != 'good': results[predicted_class][1] += 1
+
+        elif defect_mode == 'all_defects':
+            defects_in_image = [] # список дефектов на картинке
+            processed_image = input_image.copy()
+            
+            while True:
+                uncorrected_defect = ''
+                predicted_class = self.determine_class(processed_image)[0]
+                if predicted_class in defects_in_image:
+                    uncorrected_defect = predicted_class
+                    break
+
+                if predicted_class == 'good':
+                    break
+                else:
+                    defects_in_image.append(predicted_class)
+                    results[predicted_class][0] += 1
+
+                processed_image = apply_methods(predicted_class)
+
+            # все дефекты на картинке, которые есть в списке дефектов, исправлены,
+            # кроме того дефекта, который возник еще раз (uncorrected_defect)
+            for defect in defects_in_image:
+                if defect != uncorrected_defect:
+                    results[defect][1] += 1
+        
+        return (processed_image, results)
     
     def automatic_recovery_image(self, input_image, defect_mode):
         """
@@ -690,13 +1011,16 @@ class ProcessingClass:
         Восстановление изображения.
         """
         try:
+            print('recovery_image')
+            
             input_image = self.__cv2_imread_unicode(self.input_path)
             if input_image is None: return None, None
 
-            if processing_mode == 'automatic':
-                self.processed_image, result = self.automatic_recovery_image(input_image, defect_mode)
-            elif processing_mode == 'manual':
-                self.processed_image, result = self.manual_recovery_image(input_image, methods, defect_mode)
+            # if processing_mode == 'automatic':
+            #     self.processed_image, result = self.automatic_recovery_image(input_image, defect_mode)
+            # elif processing_mode == 'manual':
+            #     self.processed_image, result = self.manual_recovery_image(input_image, methods, defect_mode)
+            self.processed_image, result = self.recovery(input_image, processing_mode, defect_mode)
 
             # формируем необходимое название для сохранения
             original_filename = os.path.basename(self.input_path)
@@ -926,10 +1250,10 @@ class ProcessingClass:
         class_colors = [
             (255, 0, 0),    # Красный (класс 0)
             (0, 255, 255),    # Зеленый (класс 1)
-            (0, 0, 255),    # Синий (класс 2)
+            (0, 0, 255),    # Желтый (класс 2)
             (255, 255, 0),  # Голубой (класс 3)
             (255, 0, 255),  # Фиолетовый (класс 4)
-            (0, 255, 0),  # Желтый (класс 5)
+            (0, 255, 0),  # Зеленый (класс 5)
             (128, 0, 0),    # Темно-красный (класс 6)
             (0, 128, 0),    # Темно-зеленый (класс 7)
             (0, 0, 128),    # Темно-синий (класс 8)

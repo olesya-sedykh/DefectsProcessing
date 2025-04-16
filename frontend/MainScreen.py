@@ -56,7 +56,33 @@ class MainScreen(QMainWindow):
         self.font = QFont()
         self.font.setPointSize(10)
 
-        # стиль кнопок
+        # словарь для хранения кнопок с параметрами
+        self.gear_buttons = {}
+
+        # стили для кнопок-шестеренок (с параметрами)
+        self.gear_buttons_style = {
+            'normal': """
+                QPushButton {
+                    border: none;
+                    background: transparent;
+                    padding: 0px;
+                }
+                QPushButton:hover {
+                    background: #e0e0e0;
+                    border-radius: 2px;
+                }
+            """,
+            'disabled': """
+                 QPushButton {
+                    border: none;
+                    background: transparent;
+                    padding: 0px;
+                    color: #c0c0c0;
+                }
+            """
+        }
+
+        # стиль основных кнопок
         self.buttons_style = """
             QPushButton {
                 background-color: #F5F5F5;
@@ -76,6 +102,17 @@ class MainScreen(QMainWindow):
                 background-color: #C8E6C8;
             }
         """
+
+        # создаем экземпляр класса-обработчика
+        self.processor = ProcessingClass(
+            model_path=MODEL_PATH,
+            yolo_raw_path=YOLO_RAW_PATH,
+            yolo_best_path=YOLO_BEST_PATH,
+            output_path=OUTPUT_PATH
+        )
+        # получаем словари методов
+        self.auto_methods = self.processor.get_auto_methods()
+        self.manual_methods = self.processor.get_manual_methods()
 
         # словарь с методами и параметрами
         self.methods = {
@@ -189,18 +226,7 @@ class MainScreen(QMainWindow):
             }
         }
 
-        self.allowed_params_values = {
-            'color_space': ['hsv', 'rgb', 'yuv'],
-            'mask_mode': ['brightness', 'gradient', 'combine'],
-            'color_space_mask': ['hsv', 'gray', 'yuv'],
-            'inpaint_method': ['inpaint_ns', 'inpaint_telea'],
-            'gradient_method': ['sobel', 'scharr', 'laplacian'],
-            'adaptive_method': ['gaussian', 'mean'],
-            'estimate_noise': ['function', 'gaussian'], 
-            'wavelet_type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
-            'wavelet_mode': ['hard', 'soft'],
-            'wavelet_estimate_noise': ['function', 'gaussian', 'wavelet'],
-        }
+        self.allowed_params_values = self.processor.get_allowed_params()
 
         # список дефектов для интерфейса (русские названия)
         self.defects = [self.methods[defect]['name'] for defect in self.methods]
@@ -446,14 +472,21 @@ class MainScreen(QMainWindow):
         if self.file_path:
             # отображаем файл
             self.update_display(file_path=self.file_path, close=True, side='left')
-            # создаем экземпляр класса-обработчика
-            self.processor = ProcessingClass(
-                input_path=self.file_path,
-                model_path=MODEL_PATH,
-                yolo_raw_path=YOLO_RAW_PATH,
-                yolo_best_path=YOLO_BEST_PATH,
-                output_path=OUTPUT_PATH
-            )
+
+            # # создаем экземпляр класса-обработчика
+            # self.processor = ProcessingClass(
+            #     input_path=self.file_path,
+            #     model_path=MODEL_PATH,
+            #     yolo_raw_path=YOLO_RAW_PATH,
+            #     yolo_best_path=YOLO_BEST_PATH,
+            #     output_path=OUTPUT_PATH
+            # )
+            # # получаем словари методов
+            # self.auto_methods = self.processor.get_auto_methods()
+            # self.manual_methods = self.processor.get_manual_methods()
+
+            # передаем путь к файлу в объект класса-обработчика
+            self.processor.set_input_path(self.file_path)
             # обновляем состояние кнопок
             self.update_buttons_state()
 
@@ -1146,6 +1179,30 @@ class MainScreen(QMainWindow):
     # ФУНКЦИИ ДЛЯ ЗАПОЛНЕНИЯ ТАБЛИЦ
     # =========================================================================
 
+    def update_gear_buttons(self, defect_key):
+        # нужный словарь
+        if self.process_type.currentText() == 'Ручная обработка':
+            methods_dict = self.manual_methods  
+        else:
+            methods_dict = self.auto_methods
+
+        # ключ метода
+        method_key = next(
+            key
+            for key, method in methods_dict[defect_key]['methods'].items() 
+            if method['checked']
+        )
+        
+        # обновляем кнопку
+        if defect_key in self.gear_buttons:
+            gear_btn = self.gear_buttons[defect_key]
+            if method_key == "no_process":
+                gear_btn.setEnabled(False)
+                gear_btn.setStyleSheet(self.gear_buttons_style['disabled'])
+            else:
+                gear_btn.setEnabled(True)
+                gear_btn.setStyleSheet(self.gear_buttons_style['normal'])
+    
     def update_methods_table(self):
         """
         Обновляет таблицу методов с кнопками параметров для каждого метода.
@@ -1167,11 +1224,9 @@ class MainScreen(QMainWindow):
         """
         
         # заполняем таблицу
-        for row, defect_ru in enumerate(self.defects):
-            defect_en = next(key for key, val in self.methods.items() if val['name'] == defect_ru)
-
+        for row, defect_key in enumerate(self.auto_methods.keys()):
             # первый столбец - название дефекта
-            item = QTableWidgetItem(defect_ru)
+            item = QTableWidgetItem(self.auto_methods[defect_key]['defect_name'])
             item.setTextAlignment(Qt.AlignCenter)
             font = item.font()
             font.setBold(True)
@@ -1190,36 +1245,51 @@ class MainScreen(QMainWindow):
             gear_btn.setFont(QFont("Arial", 10))
             gear_btn.setFixedSize(24, 24)
             gear_btn.setStyleSheet(gear_style)
+            self.gear_buttons[defect_key] = gear_btn
+
+            self.update_gear_buttons(defect_key)
             
             # для автоматического режима
-            if self.process_type.currentIndex() == 0:
+            if self.process_type.currentText() == 'Автоматическая обработка':
                 # метод обработки
-                method_name = self.methods[defect_en]['automatic_method']
+                method_name = next(
+                    method['method_name'] 
+                    for method in self.auto_methods[defect_key]['methods'].values() 
+                    if method['checked']
+                )
                 method_label = QLabel(method_name)
                 method_label.setAlignment(Qt.AlignCenter)
                 layout.addWidget(method_label, stretch=1)
                 
                 # кнопка шестерёнки (только просмотр)
                 gear_btn.clicked.connect(
-                    partial(self.__handle_gear_click, defect_en, method_name, False)
+                    partial(self.__handle_gear_click, defect_key, method_name, False)
                 )
 
             # для ручного режима   
             else:
                 # выпадающий список методов
                 combo = QComboBox()
-                combo.addItems(list(self.methods[defect_en]['manual_methods'].keys()))
-                combo.setCurrentIndex(0)
+                combo.addItems([
+                    method['method_name'] 
+                    for method in self.manual_methods[defect_key]['methods'].values()
+                ])
+                cheked_method_name = next(
+                    method['method_name'] 
+                    for method in self.manual_methods[defect_key]['methods'].values() 
+                    if method['checked']
+                )
+                combo.setCurrentText(cheked_method_name)
                 combo.setStyleSheet("QComboBox { padding: 2px; }")
                 layout.addWidget(combo, stretch=1)
                 
                 # кнопка шестерёнки (редактирование)
                 gear_btn.clicked.connect(
-                    partial(self.__handle_combo_gear_click, defect_en, combo)
+                    partial(self.__handle_combo_gear_click, defect_key, combo)
                 )
                 # при изменении выбора обновляем текущий метод
                 combo.currentTextChanged.connect(
-                    partial(self.update_current_method, defect_en)
+                    partial(self.update_current_method, defect_key)
                 )
             
             # добавляем кнопку шестеренки в лайаут
@@ -1235,38 +1305,55 @@ class MainScreen(QMainWindow):
         """
         Обработчик клика по шестеренке в автоматическом режиме.
         """
-        self.show_parameters(defect_en, method_name, editable)
+        self.show_parameters(defect_en, self.auto_methods, method_name, editable)
 
     def __handle_combo_gear_click(self, defect_en, combo):
         """
         Обработчик клика по шестеренке в ручном режиме.
         """
         method_name = combo.currentText()
-        self.show_parameters(defect_en, method_name, True)
+        self.show_parameters(defect_en, self.manual_methods, method_name, True)
     
-    def update_current_method(self, defect_en, method_name):
+    def update_current_method(self, defect_key, method_name):
         """
         Обновляет текущий выбранный метод для дефекта (для ручного режима).
         """
-        if hasattr(self, 'current_methods'):
-            self.current_methods[defect_en] = method_name
-        else:
-            self.current_methods = {defect_en: method_name}
+        # обновляем словарь manual_methods
+        for method_key, method_data in self.manual_methods[defect_key]['methods'].items():
+            method_data['checked'] = (method_data['method_name'] == method_name)
+
+        self.update_gear_buttons(defect_key)
+
+        # if hasattr(self, 'current_methods'):
+        #     self.current_methods[defect_key] = method_name
+        # else:
+        #     self.current_methods = {defect_key: method_name}
     
-    def show_parameters(self, defect_en, method_name, editable):
+    def show_parameters(self, defect_key, methods_dict, method_name, editable):
         """
         Показывает параметры для выбранного метода обработки дефекта.
         """
-        print(defect_en)
+        print(defect_key)
         print(method_name)
-        print(self.methods[defect_en])
+        print(methods_dict[defect_key])
+        # получаем ключ выбранного метода
+        checked_method_key = next(
+            key 
+            for key, method in methods_dict[defect_key]['methods'].items() 
+            if method['checked']    
+        )
         # получаем параметры для выбранного метода
-        params = self.methods[defect_en]['manual_methods'][method_name]['params'].copy()
+        params = methods_dict[defect_key]['methods'][checked_method_key]['params']
+        # params =  next(
+        #     method['params'] 
+        #     for method in methods_dict[defect_key]['methods'].values() 
+        #     if method['checked']
+        # )
         
         dialog = ParameterDialog(method_name, params, self.allowed_params_values, editable)
         if dialog.exec_() == QDialog.Accepted and editable:
             # сохраняем обновленные параметры
-            self.methods[defect_en]['manual_methods'][method_name]['params'] = dialog.get_parameters()
+            methods_dict[defect_key]['methods'][checked_method_key]['params'] = dialog.get_parameters()
 
     
     def update_results_table(self):
@@ -1322,22 +1409,25 @@ class MainScreen(QMainWindow):
         self.upper_right_side()
 
         # готовим данные для передачи на бэкенд
-        processing_methods = {}
-        for defect_en in self.methods:
-            # для автоматической обработки
-            if self.process_type.currentIndex() == 0:
-                method_name = self.methods[defect_en]['automatic_method']
-                params = self.methods[defect_en]['manual_methods'][method_name]['params']
-            # для ручной обработки
-            else:
-                method_name = self.current_methods.get(defect_en, 
-                            list(self.methods[defect_en]['manual_methods'].keys())[0])
-                params = self.methods[defect_en]['manual_methods'][method_name]['params']
+        # processing_methods = {}
+        # for defect_en in self.methods:
+        #     # для автоматической обработки
+        #     if self.process_type.currentIndex() == 0:
+        #         method_name = self.methods[defect_en]['automatic_method']
+        #         params = self.methods[defect_en]['manual_methods'][method_name]['params']
+        #     # для ручной обработки
+        #     else:
+        #         method_name = self.current_methods.get(defect_en, 
+        #                     list(self.methods[defect_en]['manual_methods'].keys())[0])
+        #         params = self.methods[defect_en]['manual_methods'][method_name]['params']
             
-            processing_methods[defect_en] = {
-                'method': method_name,
-                'params': params
-            }
+        #     processing_methods[defect_en] = {
+        #         'method': method_name,
+        #         'params': params
+        #     }
+
+        # передаем на бэкенд текущие параметры для ручной обработки
+        self.processor.set_manual_methods(self.manual_methods)
 
         # выполняем нужный вид обработки
         if self.file_type.currentText() == 'Обработка изображения':
@@ -1354,13 +1444,11 @@ class MainScreen(QMainWindow):
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
                     self.processed_path, self.result = self.processor.recovery_image(
                         processing_mode='manual',
-                        defect_mode='one_defect',
-                        methods=processing_methods)
+                        defect_mode='one_defect')
                 elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
                     self.processed_path, self.result = self.processor.recovery_image(
                         processing_mode='manual',
-                        defect_mode='all_defects',
-                        methods=processing_methods)
+                        defect_mode='all_defects')
         elif self.file_type.currentText() == 'Обработка видео':
             if self.process_type.currentText() == 'Автоматическая обработка':
                 if self.defects_processing_type.currentText() == 'Исправить основной дефект':
@@ -1378,14 +1466,12 @@ class MainScreen(QMainWindow):
                     print('yes')
                     self.processed_path, self.result = self.processor.recovery_video(
                         processing_mode='manual',
-                        defect_mode='one_defect',
-                        methods=processing_methods)
+                        defect_mode='one_defect')
                 elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
                     print('yes')
                     self.processed_path, self.result = self.processor.recovery_video(
                         processing_mode='manual',
-                        defect_mode='all_defects',
-                        methods=processing_methods)
+                        defect_mode='all_defects')
 
         # если обработка прошла успешно            
         if self.processed_path:
