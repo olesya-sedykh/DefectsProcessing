@@ -50,8 +50,6 @@ class MainScreen(QMainWindow):
         self.setStyleSheet(f"background-color: {self.background_color};")
         self.center()
 
-        # self.defects = ["Размытие", "Контрастность", "Блики", "Шум"]
-
         # шрифт
         self.font = QFont()
         self.font.setPointSize(10)
@@ -110,126 +108,10 @@ class MainScreen(QMainWindow):
             yolo_best_path=YOLO_BEST_PATH,
             output_path=OUTPUT_PATH
         )
-        # получаем словари методов
+        # получаем словари методов и разрешенных параметров
         self.auto_methods = self.processor.get_auto_methods()
         self.manual_methods = self.processor.get_manual_methods()
-
-        # словарь с методами и параметрами
-        self.methods = {
-            'blur': {
-                'name': 'Размытие',
-                'automatic_method': 'Фильтр Лапласа',
-                'manual_methods': {
-                    'Фильтр Лапласа': {
-                        'params': {
-                            'alpha': 6
-                        }
-                    },
-                    'Повышение резкости': {
-                        'params': {
-                            'sigma': 3, 
-                            'alpha': 5.5, 
-                            'betta': -4.5
-                        }
-                    }
-                }
-            },
-            'contrast': {
-                'name': 'Контрастность',
-                'automatic_method': 'Алгоритм CLAHE',
-                'manual_methods': {
-                    'Алгоритм CLAHE': {
-                        'params': {
-                            'color_space': 'hsv',
-                            'clip_limit': 6.5,
-                            'tile_grid_size': (12, 12)
-                        }
-                    },
-                    'Гистограммное выравнивание': {
-                        'params': {
-                            'color_space': 'hsv',
-                        }
-                    }
-                }
-            },
-            'glares': {
-                'name': 'Блики',
-                'automatic_method': 'Адаптивное восстановление',
-                'manual_methods': {
-                    'Восстановление с помощью маски': {
-                        'params': {
-                            'mask_mode': 'brightness',
-                            'color_space_mask': 'hsv',
-                            'color_space': 'yuv',
-                            'threshold': 160,
-                            'inpaint_radius': 3,
-                            'inpaint_method': 'inpaint_ns',
-                            'gradient_method': 'sobel',
-                            'gradient_threshold': 100
-                        }
-                    },
-                    'Адаптивное восстановление': {
-                        'params': {
-                            'mask_mode': 'brightness',
-                            'color_space_mask': 'hsv',
-                            'color_space': 'yuv',
-                            'adaptive_method': 'gaussian',
-                            'block_size': 7,
-                            'C': 5,
-                            'inpaint_radius': 3,
-                            'inpaint_method': 'inpaint_ns',
-                            'gradient_method': 'sobel',
-                            'gradient_threshold': 100
-                        }
-                    }
-                }
-            },
-            'noise': {
-                'name': 'Шум',
-                'automatic_method': 'Нелокальное среднее',
-                'manual_methods': {
-                    'Фильтр среднего значения': {
-                        'params': {
-                            'estimate_noise': 'function', 
-                            'sigma': 3
-                        }
-                    },
-                    'Медианный фильтр': {
-                        'params': {
-                            'estimate_noise': 'function', 
-                            'sigma': 3
-                        }
-                    },
-                    'Фильтр Гаусса': {
-                        'params': {
-                            'estimate_noise': 'function', 
-                            'sigma': 3
-                        }
-                    },
-                    'Вейвлет-обработка': {
-                        'params': {
-                            'wavelet_type': 'haar',
-                            'wavelet_mode': 'hard',
-                            'number_of_levels': 3,
-                            'wavelet_estimate_noise': 'function',
-                            'sigma': 3
-                        }
-                    },
-                    'Нелокальное среднее': {
-                        'params': {
-                            'h': 10,
-                            'template_window_size': 7,
-                            'search_window_size': 21
-                        }
-                    }
-                }
-            }
-        }
-
         self.allowed_params_values = self.processor.get_allowed_params()
-
-        # список дефектов для интерфейса (русские названия)
-        self.defects = [self.methods[defect]['name'] for defect in self.methods]
 
         # главный виджет
         central_widget = QWidget()
@@ -472,19 +354,6 @@ class MainScreen(QMainWindow):
         if self.file_path:
             # отображаем файл
             self.update_display(file_path=self.file_path, close=True, side='left')
-
-            # # создаем экземпляр класса-обработчика
-            # self.processor = ProcessingClass(
-            #     input_path=self.file_path,
-            #     model_path=MODEL_PATH,
-            #     yolo_raw_path=YOLO_RAW_PATH,
-            #     yolo_best_path=YOLO_BEST_PATH,
-            #     output_path=OUTPUT_PATH
-            # )
-            # # получаем словари методов
-            # self.auto_methods = self.processor.get_auto_methods()
-            # self.manual_methods = self.processor.get_manual_methods()
-
             # передаем путь к файлу в объект класса-обработчика
             self.processor.set_input_path(self.file_path)
             # обновляем состояние кнопок
@@ -1344,11 +1213,6 @@ class MainScreen(QMainWindow):
         )
         # получаем параметры для выбранного метода
         params = methods_dict[defect_key]['methods'][checked_method_key]['params']
-        # params =  next(
-        #     method['params'] 
-        #     for method in methods_dict[defect_key]['methods'].values() 
-        #     if method['checked']
-        # )
         
         dialog = ParameterDialog(method_name, params, self.allowed_params_values, editable)
         if dialog.exec_() == QDialog.Accepted and editable:
@@ -1364,24 +1228,14 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'result'):
             # полная очистка таблицы
             self.results_table.clearContents()
-
-            defect_mapping = {
-                'blur': "Размытие",
-                'contrast': "Контрастность",
-                'glares': "Блики",
-                'noise': "Шум"
-            }
             
             # заполняем таблицу
-            for row, defect_ru in enumerate(self.defects):
-                # находим английский ключ для этого дефекта
-                defect_en = next(key for key, value in defect_mapping.items() if value == defect_ru)
-                
+            for row, defect_key in enumerate(self.auto_methods.keys()):                
                 # получаем значения для этого дефекта
-                detected, fixed = self.result.get(defect_en, [0, 0])
+                detected, fixed = self.result.get(defect_key, [0, 0])
                 
                 # создаем ячейки
-                item_defect = QTableWidgetItem(defect_ru)
+                item_defect = QTableWidgetItem(self.auto_methods[defect_key]['defect_name'])
                 item_detected = QTableWidgetItem(str(detected))
                 item_fixed = QTableWidgetItem(str(fixed))
                 
@@ -1407,24 +1261,6 @@ class MainScreen(QMainWindow):
         self.clear_right_side()
         # добавляем заголовок и область под результат обработки
         self.upper_right_side()
-
-        # готовим данные для передачи на бэкенд
-        # processing_methods = {}
-        # for defect_en in self.methods:
-        #     # для автоматической обработки
-        #     if self.process_type.currentIndex() == 0:
-        #         method_name = self.methods[defect_en]['automatic_method']
-        #         params = self.methods[defect_en]['manual_methods'][method_name]['params']
-        #     # для ручной обработки
-        #     else:
-        #         method_name = self.current_methods.get(defect_en, 
-        #                     list(self.methods[defect_en]['manual_methods'].keys())[0])
-        #         params = self.methods[defect_en]['manual_methods'][method_name]['params']
-            
-        #     processing_methods[defect_en] = {
-        #         'method': method_name,
-        #         'params': params
-        #     }
 
         # передаем на бэкенд текущие параметры для ручной обработки
         self.processor.set_manual_methods(self.manual_methods)
