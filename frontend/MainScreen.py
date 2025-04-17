@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QTableWidget, QTableWidgetItem, 
     QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
     QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget,
-    QMessageBox
+    QMessageBox, QStyle
 )
 from PyQt5.QtGui import (
     QPalette, QColor, QFont, QIntValidator, 
@@ -27,6 +27,7 @@ os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
 from frontend.PreviewWindowImage import PreviewWindowImage
 from frontend.PreviewWindowVideo import PreviewWindowVideo
+from frontend.PreviewWindowDataset import PreviewWindowDataset
 from ParameterDialog import ParameterDialog
 from backend.ProcessingClass import ProcessingClass
 
@@ -370,7 +371,7 @@ class MainScreen(QMainWindow):
             if processing_type == "Обработка изображения":
                 self.display_image(file_path=file_path, close=close, side=side)
             elif processing_type == "Обработка датасета":
-                self.display_dataset()
+                self.display_dataset(file_path=file_path, close=close, side=side)
             elif processing_type == "Обработка видео":
                 self.display_video(file_path=file_path, close=close, side=side)
 
@@ -429,7 +430,7 @@ class MainScreen(QMainWindow):
         overlay_layout = QHBoxLayout(overlay_widget) # расположение по горизонтали
         overlay_layout.setContentsMargins(0, 0, 0, 0)
         overlay_widget.setStyleSheet("background: transparent; border: none;") # делаем прозрачным фон виджета для кнопок
-        # overlay_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        overlay_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
         
         # кнопка просмотра (глаз)
         view_button = QPushButton("👁")
@@ -449,6 +450,8 @@ class MainScreen(QMainWindow):
             view_button.clicked.connect(lambda: self.view_content_image(side))
         elif type == 'video':
             view_button.clicked.connect(lambda: self.view_content_video(side))
+        elif type == 'dataset':
+            view_button.clicked.connect(lambda: self.view_content_dataset(side))
         overlay_layout.addWidget(view_button)
         
         # кнопка закрытия (крестик)
@@ -525,9 +528,9 @@ class MainScreen(QMainWindow):
         здесь используются объекты конкретно левой стороны.
         """
         # освобождаем ресурсы из-под объекта-обработчика
-        if hasattr(self, 'processor'):
-            self.processor.cleanup()
-            del self.processor
+        # if hasattr(self, 'processor'):
+        #     self.processor.cleanup()
+        #     del self.processor
 
         # останавливаем таймер, если он существует
         if hasattr(self, 'left_video_timer') and self.left_video_timer:
@@ -580,10 +583,12 @@ class MainScreen(QMainWindow):
         # добавляем контейнер в лайаут для отображения файла
         if side == 'left': 
             self.left_show_label = show_label
+            self.left_show_label.setStyleSheet("background-color: white;")
             self.left_show_container = show_container
             self.file_layout.addWidget(self.left_show_container)
         elif side == 'right': 
             self.right_show_label = show_label
+            self.right_show_label.setStyleSheet("background-color: white;")
             self.right_show_container = show_container
             self.result_layout.addWidget(self.right_show_container)
 
@@ -899,6 +904,59 @@ class MainScreen(QMainWindow):
                 self.preview_window.show()
             elif hasattr(self, 'processed_path') and self.processed_path:
                 self.preview_window = PreviewWindowVideo(self.processed_path)
+                self.preview_window.show()
+
+    # =========================================================================
+    # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ДАТАСЕТА
+    # =========================================================================
+
+    def display_dataset(self, file_path, close, side):
+        """
+        Отображает иконку датасета в маленьком окошке.
+        Параметр close определяет наличие кнопки закрытия.
+        """
+        # cоздаем иконку папки для представления датасета
+        folder_icon = QPixmap("icons/folder_4.png")
+        folder_pixmap = folder_icon.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+        # создаем элементы показа
+        self.create_show_elements(side=side)
+
+        # создаем кнопки закрытия и просмотра
+        self.create_service_buttons(type='dataset', close=close, side=side)
+
+        # добавляем иконку папки на виджет для отображения
+        if side == 'left' and hasattr(self, 'left_show_label'):
+            self.left_show_label.setAlignment(Qt.AlignCenter)
+            self.left_show_label.setPixmap(folder_pixmap)
+        elif side == 'right' and hasattr(self, 'right_show_label'):
+            self.right_show_label.setAlignment(Qt.AlignCenter)
+            self.right_show_label.setPixmap(folder_pixmap)
+
+        # устанавливаем обработчики изменения размеров лейбла
+        if side == 'left' and hasattr(self, 'left_show_label'):
+            self.left_show_label.resizeEvent = lambda e: self.update_buttons_position()
+        elif side == 'right' and hasattr(self, 'right_show_label'): 
+            print('right_handler')
+            self.right_show_label.resizeEvent = lambda e: self.update_buttons_position()
+
+    def view_content_dataset(self, side):
+        """
+        Открывает окно просмотра с содержимым датасета.
+        """        
+        if side == 'left': 
+            if hasattr(self, 'detected_path') and self.detected_path:
+                self.preview_window = PreviewWindowDataset(self.detected_path)
+                self.preview_window.show()
+            elif hasattr(self, 'file_path') and self.file_path:
+                self.preview_window = PreviewWindowDataset(self.file_path)
+                self.preview_window.show()
+        elif side == 'right': 
+            if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
+                self.preview_window = PreviewWindowDataset(self.detected_processed_path)
+                self.preview_window.show()
+            elif hasattr(self, 'processed_path') and self.processed_path:
+                self.preview_window = PreviewWindowDataset(self.processed_path)
                 self.preview_window.show()
 
 
@@ -1283,6 +1341,25 @@ class MainScreen(QMainWindow):
                         defect_mode='one_defect')
                 elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
                     self.processed_path, self.result = self.processor.recovery_image(
+                        processing_mode='manual',
+                        defect_mode='all_defects')
+        if self.file_type.currentText() == 'Обработка датасета':
+            if self.process_type.currentText() == 'Автоматическая обработка':
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    self.processed_path, self.result = self.processor.recovery_dataset(
+                        processing_mode='automatic',
+                        defect_mode='one_defect')
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    self.processed_path, self.result = self.processor.recovery_dataset(
+                        processing_mode='automatic',
+                        defect_mode='all_defects')
+            elif self.process_type.currentText() == 'Ручная обработка':
+                if self.defects_processing_type.currentText() == 'Исправить основной дефект':
+                    self.processed_path, self.result = self.processor.recovery_dataset(
+                        processing_mode='manual',
+                        defect_mode='one_defect')
+                elif self.defects_processing_type.currentText() == 'Исправить все дефекты':
+                    self.processed_path, self.result = self.processor.recovery_dataset(
                         processing_mode='manual',
                         defect_mode='all_defects')
         elif self.file_type.currentText() == 'Обработка видео':

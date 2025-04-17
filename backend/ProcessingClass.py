@@ -948,31 +948,46 @@ class ProcessingClass:
         Восстановление датасета.
         """
         try:
+            # словарь с результатами
+            main_results = {
+                'blur': [0, 0],
+                'contrast': [0, 0],
+                'glares': [0, 0],
+                'noise': [0, 0]
+            }
+
             # создаем папку для сохранения датасета по указанному пути
             input_folder_name = Path(self.input_path).name
             processed_folder_name = f"processed_{input_folder_name}"
-            processed_folder_path = Path(self.output_path) / processed_folder_name
-            processed_folder_path.mkdir(parents=True, exist_ok=True)
+            self.processed_path = Path(self.output_path) / processed_folder_name
+            self.processed_path.mkdir(parents=True, exist_ok=True)
 
+            # получаем список имен изображений
             images = os.listdir(self.input_path)
             for image_name in images:
                 input_image_path = os.path.join(self.input_path, image_name)
-                output_image_path = os.path.join(processed_folder_path, image_name)
+                output_image_path = os.path.join(self.processed_path, image_name)
 
+                # загружаем изображение
                 input_image = self.__cv2_imread_unicode(input_image_path)
                 if input_image is None: return None
 
+                # обрабатываем каждое изображение
                 processed_image, results = self.recovery(input_image, processing_mode, defect_mode)
 
-                # формируем необходимое название для сохранения
-                original_filename = os.path.basename(input_image_path)
-                name, ext = os.path.splitext(original_filename)
-                processed_filename = f"processed_{name}{ext}"
-                processed_path = os.path.join(output_image_path, processed_filename)
+                # обновляем словарь с результатами
+                main_results = {
+                    key: [
+                        main_results[key][0] + results[key][0], 
+                        main_results[key][1] + results[key][1]
+                    ] 
+                    for key in main_results
+                }
 
-                if not self.__cv2_imwrite_unicode(processed_path, processed_image):
+                if not self.__cv2_imwrite_unicode(output_image_path, processed_image):
                     return None
-            return processed_folder_path
+            
+            return (self.processed_path, main_results)
         except:
             return None
         
@@ -1062,7 +1077,7 @@ class ProcessingClass:
             print(1)
 
             # распознаем объекты
-            self.detected_image = self.detect_objects(image=image, detect_type=detect_type, confidence_threshold=confidence_threshold)
+            detected_image = self.detect_objects(image=image, detect_type=detect_type, confidence_threshold=confidence_threshold)
 
             print(2)
 
@@ -1077,7 +1092,7 @@ class ProcessingClass:
 
             print(3)
 
-            if self.__cv2_imwrite_unicode(detected_path, self.detected_image):
+            if self.__cv2_imwrite_unicode(detected_path, detected_image):
                 return detected_path
         except:
             return None
@@ -1144,3 +1159,41 @@ class ProcessingClass:
         
         except Exception as e:
             return None
+        
+    def detect_dataset(self, detect_type, confidence_threshold=0.55):
+        """
+        Поиск объектов на изображениях датасета.
+        """
+        try:
+            # создаем папку для сохранения датасета по указанному пути
+            if detect_type == 'raw':
+                input_folder_path = self.input_path
+                input_folder_name = Path(input_folder_path).name
+                detected_folder_name = f"detected_{input_folder_name}"
+            elif detect_type == 'best':
+                input_folder_path = self.processed_path
+                input_folder_name = Path(input_folder_path).name
+                detected_folder_name = f"detected_processed_{input_folder_name}"
+            detected_path = Path(self.output_path) / detected_folder_name
+            detected_path.mkdir(parents=True, exist_ok=True)
+
+            # получаем список имен изображений
+            images = os.listdir(input_folder_path)
+            for image_name in images:
+                input_image_path = os.path.join(input_folder_path, image_name)
+                output_image_path = os.path.join(detected_path, image_name)
+
+                # загружаем изображение
+                input_image = self.__cv2_imread_unicode(input_image_path)
+                if input_image is None: return None
+
+                # распознаем объекты
+                detected_image = self.detect_objects(image=input_image, detect_type=detect_type, confidence_threshold=confidence_threshold)
+
+                if not self.__cv2_imwrite_unicode(output_image_path, detected_image):
+                    return None
+            
+            return detected_path
+        except:
+            return None
+    
