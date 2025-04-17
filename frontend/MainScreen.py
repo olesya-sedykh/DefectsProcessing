@@ -140,7 +140,9 @@ class MainScreen(QMainWindow):
         self.file_type.setFixedHeight(45)
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(self.font)
+        self.file_type.currentTextChanged.connect(self.set_download_buttons_text)
         left_layout.addWidget(self.file_type)
+        # self.set_download_buttons_text()
 
         # область для загрузки и отображения файлов
         self.file_widget = QWidget()
@@ -160,13 +162,14 @@ class MainScreen(QMainWindow):
         # кнопка загрузки
         self.create_load_button()
 
-        # кнопка для скачивания исходной размеченной картинки
-        self.download_detect_button = QPushButton("Скачать размеченное изображение")
+        # кнопка для скачивания исходного размеченного файла
+        self.download_detect_button = QPushButton()
         self.download_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.download_detect_button.setFixedHeight(50)
         self.download_detect_button.setStyleSheet(self.buttons_style)
         self.download_detect_button.setFont(self.font)
         self.download_detect_button.clicked.connect(lambda: self.download_files(self.detected_path))
+        self.set_download_buttons_text()
         left_layout.addWidget(self.download_detect_button)
 
         # выпадающий список для выбора способа исправления дефектов
@@ -300,6 +303,38 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'download_process_detect_button'):
             self.download_process_detect_button.setEnabled(hasattr(self, 'detected_processed_path') and self.detected_processed_path is not None)
 
+    def set_download_buttons_text(self):
+        """
+        Устанавливает нужный текст на кнопках скачивания.
+        """
+        # кнопка для скачивания обработанного файла
+        if hasattr(self, 'download_process_button'):
+            if self.file_type.currentText() == 'Обработка изображения':
+                self.download_process_button.setText("Скачать\nобработанное\nизображение")
+            elif self.file_type.currentText() == 'Обработка видео':
+                self.download_process_button.setText("Скачать\nобработанное\nвидео")
+            elif self.file_type.currentText() == 'Обработка датасета':
+                self.download_process_button.setText("Скачать\nобработанный\nдатасет")
+
+        # кнопка для скачивания обработанного и размеченного файла
+        if hasattr(self, 'download_process_detect_button'):
+            if self.file_type.currentText() == 'Обработка изображения':
+                self.download_process_detect_button.setText("Скачать\nразмеченное\nизображение")
+            elif self.file_type.currentText() == 'Обработка видео':
+                self.download_process_detect_button.setText("Скачать\nразмеченное\nвидео")
+            elif self.file_type.currentText() == 'Обработка датасета':
+                self.download_process_detect_button.setText("Скачать\nразмеченный\nдатасет")
+
+        # кнопка для скачивания исходного размеченного файла
+        if hasattr(self, 'download_detect_button'):
+            if self.file_type.currentText() == 'Обработка изображения':
+                self.download_detect_button.setText("Скачать размеченное изображение")
+            elif self.file_type.currentText() == 'Обработка видео':
+                self.download_detect_button.setText("Скачать размеченное видео")
+            elif self.file_type.currentText() == 'Обработка датасета':
+                self.download_detect_button.setText("Скачать размеченный датасет")
+
+    
     def download_files(self, path):
         downloads_dir = os.path.expanduser("~/Downloads")
         file_name = os.path.basename(path)
@@ -1071,23 +1106,25 @@ class MainScreen(QMainWindow):
         right_download_buttons_layout.setContentsMargins(0, 0, 0, 0)  # убираем отступы
         right_download_buttons_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # кнопка для скачивания обработанной картинки
-        self.download_process_button = QPushButton("Скачать\nобработанное\nизображение")
+        # кнопка для скачивания обработанного файла
+        self.download_process_button = QPushButton()
         self.download_process_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.download_process_button.setFixedHeight(100)
         self.download_process_button.setStyleSheet(self.buttons_style)
         self.download_process_button.setFont(self.font)
         self.download_process_button.clicked.connect(lambda: self.download_files(self.processed_path))
+        self.set_download_buttons_text()
         right_download_buttons_layout.addWidget(self.download_process_button)
 
-        # кнопка для скачивания обработанной и размеченной картинки
-        self.download_process_detect_button = QPushButton("Скачать\nразмеченное\nизображение")
+        # кнопка для скачивания обработанного и размеченного файла
+        self.download_process_detect_button = QPushButton()
         self.download_process_detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.download_process_detect_button.setFixedHeight(100)
         self.download_process_detect_button.setStyleSheet(self.buttons_style)
         self.download_process_detect_button.setFont(self.font)
         self.download_process_detect_button.clicked.connect(lambda: self.download_files(self.detected_processed_path))
         # self.process_button.clicked.connect(self.detect_objects)
+        self.set_download_buttons_text()
         right_download_buttons_layout.addWidget(self.download_process_detect_button)
 
         self.right_layout.addWidget(right_download_buttons_widget)
