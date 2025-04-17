@@ -275,6 +275,13 @@ class MainScreen(QMainWindow):
         self.update_buttons_state()
 
 
+    def closeEvent(self, event):
+        """
+        Событие закрытия окна.
+        """
+        self.clear_folder(OUTPUT_PATH)
+
+
     # =========================================================================
     # ОБЩИЕ ФУНКЦИИ
     # =========================================================================
@@ -334,8 +341,10 @@ class MainScreen(QMainWindow):
             elif self.file_type.currentText() == 'Обработка датасета':
                 self.download_detect_button.setText("Скачать размеченный датасет")
 
-    
     def download_files(self, path):
+        """
+        Реализует скачивание файлов.
+        """
         downloads_dir = os.path.expanduser("~/Downloads")
         file_name = os.path.basename(path)
         save_path = os.path.join(downloads_dir, file_name)
@@ -350,6 +359,17 @@ class MainScreen(QMainWindow):
             QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{display_path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
+
+    def clear_folder(self, folder_path):
+        """
+        Очищает папку с файлами.
+        """
+        for file_name in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, file_name)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
     
     
     # =========================================================================
@@ -566,6 +586,9 @@ class MainScreen(QMainWindow):
         # if hasattr(self, 'processor'):
         #     self.processor.cleanup()
         #     del self.processor
+
+        # очищаем временную папку
+        self.clear_folder(OUTPUT_PATH)
 
         # останавливаем таймер, если он существует
         if hasattr(self, 'left_video_timer') and self.left_video_timer:
