@@ -13,5 +13,7 @@ from frontend.MainScreen import MainScreen
 if __name__ == "__main__":
     App = QApplication(sys.argv)
     window = MainScreen()
+    # App.aboutToQuit.connect(window.clear_temp_folder)
+    window.clear_temp_folder()
     window.show()
     sys.exit(App.exec())

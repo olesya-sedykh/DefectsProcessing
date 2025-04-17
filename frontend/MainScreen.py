@@ -279,7 +279,7 @@ class MainScreen(QMainWindow):
         """
         Событие закрытия окна.
         """
-        self.clear_folder(OUTPUT_PATH)
+        self.clear_temp_folder()
 
 
     # =========================================================================
@@ -360,12 +360,12 @@ class MainScreen(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
 
-    def clear_folder(self, folder_path):
+    def clear_temp_folder(self):
         """
         Очищает папку с файлами.
         """
-        for file_name in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, file_name)
+        for file_name in os.listdir(OUTPUT_PATH):
+            file_path = os.path.join(OUTPUT_PATH, file_name)
             if os.path.isfile(file_path):
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
@@ -588,7 +588,7 @@ class MainScreen(QMainWindow):
         #     del self.processor
 
         # очищаем временную папку
-        self.clear_folder(OUTPUT_PATH)
+        self.clear_temp_folder(OUTPUT_PATH)
 
         # останавливаем таймер, если он существует
         if hasattr(self, 'left_video_timer') and self.left_video_timer:
