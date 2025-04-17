@@ -295,6 +295,13 @@ class MainScreen(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def show_errors(self, text, parent_layout):
+        error_widget = QLabel()
+        error_widget.setText(text)
+        error_widget.setStyleSheet("color: red;")
+        error_widget.setAlignment(Qt.AlignCenter)
+        parent_layout.addWidget(error_widget)
+    
     def update_buttons_state(self):
         """
         Обновляет состояние всех кнопок.
@@ -707,11 +714,15 @@ class MainScreen(QMainWindow):
         # загружаем изображение
         original_pixmap = QPixmap(file_path) # original_pixmap - это непосредственно изображение
         if original_pixmap.isNull():
-            error_widget = QLabel()
-            error_widget.setText("Ошибка: не удалось загрузить изображение")
-            error_widget.setStyleSheet("color: red;")
-            error_widget.setAlignment(Qt.AlignCenter)
-            self.file_layout.addWidget(error_widget)
+            # error_widget = QLabel()
+            # error_widget.setText("Ошибка: не удалось загрузить изображение")
+            # error_widget.setStyleSheet("color: red;")
+            # error_widget.setAlignment(Qt.AlignCenter)
+            # self.file_layout.addWidget(error_widget)
+            self.show_errors(
+                text="Ошибка: не удалось загрузить изображение", 
+                parent_layout=self.file_layout
+            )
             return
 
         # создаем элементы показа картинки
@@ -767,21 +778,29 @@ class MainScreen(QMainWindow):
         """
         # проверяем существование файла
         if not os.path.exists(file_path):
-            error_widget = QLabel()
-            error_widget.setText("Ошибка: файл не найден")
-            error_widget.setStyleSheet("color: red;")
-            error_widget.setAlignment(Qt.AlignCenter)
-            self.file_layout.addWidget(error_widget)
+            # error_widget = QLabel()
+            # error_widget.setText("Ошибка: файл не найден")
+            # error_widget.setStyleSheet("color: red;")
+            # error_widget.setAlignment(Qt.AlignCenter)
+            # self.file_layout.addWidget(error_widget)
+            self.show_errors(
+                text="Ошибка: файл не найден", 
+                parent_layout=self.file_layout
+            )
             return
         
         # загружаем видео с помощью OpenCV VideoCapture
         cap = cv2.VideoCapture(file_path)
         if not cap.isOpened():
-            error_widget = QLabel()
-            error_widget.setText("Ошибка: не удалось открыть видео")
-            error_widget.setStyleSheet("color: red;")
-            error_widget.setAlignment(Qt.AlignCenter)
-            self.file_layout.addWidget(error_widget)
+            # error_widget = QLabel()
+            # error_widget.setText("Ошибка: не удалось открыть видео")
+            # error_widget.setStyleSheet("color: red;")
+            # error_widget.setAlignment(Qt.AlignCenter)
+            # self.file_layout.addWidget(error_widget)
+            self.show_errors(
+                text="Ошибка: не удалось открыть видео", 
+                parent_layout=self.file_layout
+            )
             return
 
         # создаем элементы показа видео
