@@ -502,15 +502,30 @@ class MainScreen(QMainWindow):
         save_path = os.path.join(downloads_dir, file_name)
         counter = 1
         base_name, ext = os.path.splitext(file_name)
-        while os.path.exists(save_path):
-            save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}{ext}"))
-            counter += 1
-        try:
-            shutil.copy2(path, save_path)
-            display_path = save_path.replace("\\", "/")
-            QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{display_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
+        
+        # обработка случая, когда path - это папка
+        if os.path.isdir(path):
+            while os.path.exists(save_path):
+                save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}"))
+                counter += 1
+            try:
+                shutil.copytree(path, save_path)
+                display_path = save_path.replace("\\", "/")
+                QMessageBox.information(self, "Успех", f"Папка сохранена в:\n{display_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить папку:\n{str(e)}")
+        
+        # обработка случая, когда path - это файл
+        else:
+            while os.path.exists(save_path):
+                save_path = os.path.normpath(os.path.join(downloads_dir, f"{base_name}_{counter}{ext}"))
+                counter += 1
+            try:
+                shutil.copy2(path, save_path)
+                display_path = save_path.replace("\\", "/")
+                QMessageBox.information(self, "Успех", f"Файл сохранен в:\n{display_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
 
     def clear_temp_folder(self):
         """
@@ -917,7 +932,7 @@ class MainScreen(QMainWindow):
             elif hasattr(self, 'file_path') and self.file_path:
                 self.preview_window = PreviewWindowImage(self.file_path)
                 self.preview_window.show()
-        elif side == 'right': 
+        elif side == 'right':
             if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
                 self.preview_window = PreviewWindowImage(self.detected_processed_path)
                 self.preview_window.show()
@@ -1333,6 +1348,8 @@ class MainScreen(QMainWindow):
 
         self.right_layout.addWidget(right_download_buttons_widget)
 
+        self.update_buttons_state()
+
         # кнопка для параллельного просмотра исходной версии и итоговой
         # self.compare_button = QPushButton("Сравнить с исходным")
         # self.compare_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -1556,6 +1573,9 @@ class MainScreen(QMainWindow):
     # =========================================================================
 
     def show_processing(self, side, message='', show=True):
+        """
+        Общая функция для отображения спиннера в процессе обработки/распонавания.
+        """
         if side == 'left':
             container_attr = 'left_processing_container'
             movie_attr = 'left_movie'
@@ -1570,47 +1590,48 @@ class MainScreen(QMainWindow):
             layout = self.result_layout
 
         if show:
-            # Удаляем предыдущие элементы, если они есть
+            # удаляем предыдущие элементы, если они есть
             if hasattr(self, container_attr):
                 getattr(self, container_attr).deleteLater()
                 delattr(self, container_attr)
             
-            # Создаем основной контейнер
+            # создаем основной контейнер
             container = QWidget(widget)
             setattr(self, container_attr, container)
             container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             
-            # Главный layout контейнера
+            # главный layout контейнера
             main_layout = QVBoxLayout(container)
             main_layout.setContentsMargins(0, 0, 0, 0)
             main_layout.setSpacing(0)
             
-            # Центрирующий виджет
+            # центрирующий виджет
             center_widget = QWidget()
             center_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             center_layout = QVBoxLayout(center_widget)
             center_layout.setContentsMargins(0, 0, 0, 0)
-            center_layout.setSpacing(0)  # Минимальное расстояние между гифкой и текстом
+            center_layout.setSpacing(0)  # минимальное расстояние между гифкой и текстом
             
-            # Виджет с гифкой
+            # виджет с гифкой
             gif_widget = QWidget()
             gif_widget.setFixedSize(200, 200)
             gif_layout = QVBoxLayout(gif_widget)
             gif_layout.setContentsMargins(0, 0, 0, 0)
             gif_layout.setAlignment(Qt.AlignCenter)
             
-            # Создаем и настраиваем QMovie
+            # создаем и настраиваем QMovie
             movie = QMovie("icons/loading.gif")
             movie.setScaledSize(QSize(200, 200))
             setattr(self, movie_attr, movie)
             
+            # лейбл для отображения гифки
             spinner = QLabel()
             spinner.setAlignment(Qt.AlignCenter)
             spinner.setMovie(movie)
             movie.start()
             gif_layout.addWidget(spinner)
             
-            # Текст под гифкой
+            # текст под гифкой
             label = QLabel(message)
             label.setAlignment(Qt.AlignCenter)
             label.setStyleSheet("""
@@ -1625,160 +1646,30 @@ class MainScreen(QMainWindow):
             # label.setMinimumHeight(40)
             setattr(self, label_attr, label)
             
-            # Добавляем гифку и текст в центр
+            # добавляем гифку и текст в центр
             center_layout.addStretch()
             center_layout.addWidget(gif_widget, 0, Qt.AlignCenter)
             center_layout.addWidget(label, 0, Qt.AlignCenter)
             center_layout.addStretch()
             
-            # Добавляем центрирующий виджет в основной layout
+            # добавляем центрирующий виджет в основной layout
             main_layout.addWidget(center_widget)
             
             layout.addWidget(container)
             container.show()
         else:
-            # Сначала останавливаем и удаляем QMovie
+            # останавливаем и удаляем QMovie
             if hasattr(self, movie_attr):
                 getattr(self, movie_attr).stop()
                 getattr(self, movie_attr).deleteLater()
                 delattr(self, movie_attr)
             
-            # Затем удаляем контейнер и метку
+            # удаляем контейнер и метку
             if hasattr(self, container_attr):
                 getattr(self, container_attr).deleteLater()
                 delattr(self, container_attr)
             if hasattr(self, label_attr):
                 delattr(self, label_attr)
-    
-    # def show_processing(self, side, message='', show=True):
-    #     """
-    #     Показывает/скрывает гифку, обозначающую процесс обработки.
-    #     """
-    #     if side == 'left':
-    #         widget = self.file_widget
-    #         layout = self.file_layout
-    #     elif side == 'right':
-    #         widget = self.result_widget
-    #         layout = self.result_layout
-        
-    #     if show:
-    #         # if not hasattr(self, 'result_widget'):
-    #         #     return
-                
-    #         # if not hasattr(self, 'processing_overlay'):
-
-    #         if side == 'left':
-    #             self.left_gif_overley = QWidget(widget)
-    #             self.left_movie = QMovie("icons/loading.gif")
-    #             gif_overlay = self.left_gif_overley
-    #             movie = self.left_movie
-    #         else:
-    #             self.right_gif_overley = QWidget(widget)
-    #             self.right_movie = QMovie("icons/loading.gif")
-    #             gif_overlay = self.right_gif_overley
-    #             movie = self.right_movie
-            
-    #         # контейнер для спиннера
-    #         spinner_container = QWidget()
-    #         spinner_layout = QVBoxLayout(spinner_container)
-
-    #         # растяжение перед спиннером (прижимает его к нижнему краю)
-    #         spinner_layout.addStretch()
-
-    #         # горизонтальный layout для центрирования спиннера
-    #         spinner_horizontal_layout = QHBoxLayout()
-
-    #         # пространство слева от спиннера
-    #         spinner_horizontal_layout.addStretch()
-
-    #         # спиннер
-    #         gif_overlay = QWidget(widget)
-    #         gif_overlay.setFixedSize(200, 170)
-    #         # self.processing_overlay.setStyleSheet(
-    #         #     self.buttons_style +
-    #         #     """
-    #         #     QWidget {
-    #         #         border-radius: 15px;
-    #         #     }
-    #         #     """
-    #         # )
-
-    #         # Внутренний layout для спиннера и текста
-    #         inner_layout = QVBoxLayout(gif_overlay)
-    #         inner_layout.setAlignment(Qt.AlignCenter)
-    #         inner_layout.setContentsMargins(0, 0, 0, 0)
-            
-    #         # Добавляем спиннер
-    #         spinner = QLabel()
-    #         movie = QMovie("icons/loading.gif")
-    #         spinner.setMovie(movie)
-    #         movie.start()
-    #         inner_layout.addWidget(spinner, 0, Qt.AlignCenter)
-            
-    #         # Добавляем текстовую метку
-    #         self.processing_label = QLabel(message)
-    #         self.processing_label.setStyleSheet("""
-    #             font-size: 14px;
-    #             color: #333333;
-    #             font-weight: bold;
-    #         """)
-    #         inner_layout.addWidget(self.processing_label, 0, Qt.AlignCenter)
-
-    #         # добавляем обертку для спиннера в горизонтальный лайаут
-    #         spinner_horizontal_layout.addWidget(gif_overlay)
-
-    #         # пространство справа от спиннера
-    #         spinner_horizontal_layout.addStretch()
-
-    #         # добавляем горизонтальный layout в вертикальный
-    #         spinner_layout.addLayout(spinner_horizontal_layout)
-
-    #         # пространство сверху от спиннера, чтобы сделать его по центру по вертикали
-    #         spinner_layout.addStretch()
-
-    #         # добавляем контейнер со спиннером в result_layout
-    #         layout.addWidget(spinner_container)
-            
-    #         gif_overlay.show()
-            
-    #     else:
-    #         # processing_overlay.hide()
-
-    #         if side == 'left':
-    #             if hasattr(self, 'left_movie'):
-    #                 self.left_movie.stop()
-    #                 self.left_movie.deleteLater()
-    #                 del self.left_movie
-    #             if hasattr(self, 'left_gif_overley'):
-    #                 self.left_gif_overley.deleteLater()
-    #                 del self.left_gif_overley
-    #         elif side == 'right':
-    #             if hasattr(self, 'right_movie'):
-    #                 self.right_movie.stop()
-    #                 self.right_movie.deleteLater()
-    #                 del self.right_movie
-    #             if hasattr(self, 'right_gif_overley'):
-    #                 self.right_gif_overley.deleteLater()
-    #                 del self.right_gif_overley
-                
-
-    #         # if side == 'left':
-    #         #     if hasattr(self, 'left_gif_overley') and self.left_gif_overley:
-    #         #         self.left_gif_overley.deleteLater()
-    #         #         del self.left_gif_overley
-    #         #     if hasattr(self, 'left_movie') and self.left_movie:
-    #         #         self.left_movie.deleteLater()
-    #         #         del self.left_movie
-    #         # elif side == 'right':
-    #         #     if hasattr(self, 'right_gif_overley') and self.right_gif_overley:
-    #         #         self.right_gif_overley.deleteLater()
-    #         #         del self.right_gif_overley
-    #         #     if hasattr(self, 'right_movie') and self.right_movie:
-    #         #         self.right_movie.deleteLater()
-    #         #         del self.right_movie
-
-    #         # if hasattr(self, 'movie'):
-    #         #     movie.stop()
 
 
     def processing(self):
@@ -1875,46 +1766,10 @@ class MainScreen(QMainWindow):
         self.detect_worker.error.connect(self.on_detecting_error)
         self.detect_worker.start()
 
-
-        # print('front_detect')
-        # if self.file_type.currentText() == 'Обработка изображения':
-        #     self.detected_path = self.processor.detect_image(detect_type='raw')
-        #     self.detected_processed_path = self.processor.detect_image(detect_type='best')
-        # elif self.file_type.currentText() == 'Обработка видео':
-        #     self.detected_path = self.processor.detect_video(detect_type='raw')
-        #     self.detected_processed_path = self.processor.detect_video(detect_type='best')
-        # elif self.file_type.currentText() == 'Обработка датасета':
-        #     self.detected_path = self.processor.detect_dataset(detect_type='raw')
-        #     self.detected_processed_path = self.processor.detect_dataset(detect_type='best')
-
-        # # очищаем области отображения файлов
-        # if hasattr(self, 'file_layout'):
-        #     self.delete_files_widgets('left')
-        # if hasattr(self, 'result_layout'):
-        #     self.delete_files_widgets('right')
-        
-        # # отображаем исходный размеченный файл слева
-        # if self.detected_path and os.path.exists(self.detected_path):
-        #     if self.file_type.currentText() == 'Обработка изображения':
-        #         self.display_image(file_path=self.detected_path, close=True, side='left')
-        #     elif self.file_type.currentText() == 'Обработка видео':
-        #         self.display_video(file_path=self.detected_path, close=True, side='left')
-        #     elif self.file_type.currentText() == 'Обработка датасета':
-        #         self.display_dataset(file_path=self.detected_path, close=True, side='left')
-        
-        # # отображаем обработанный размеченный файл справа
-        # if self.detected_processed_path and os.path.exists(self.detected_processed_path):
-        #     if self.file_type.currentText() == 'Обработка изображения':
-        #         self.display_image(file_path=self.detected_processed_path, close=False, side='right')
-        #     elif self.file_type.currentText() == 'Обработка видео':
-        #         self.display_video(file_path=self.detected_processed_path, close=False, side='right')
-        #     elif self.file_type.currentText() == 'Обработка датасета':
-        #         self.display_dataset(file_path=self.detected_processed_path, close=False, side='right')
-        
-        # # обновляем состояние кнопок
-        # self.update_buttons_state()
-
     def on_detecting_finished(self, detected_path, detected_processed_path):
+        """
+        Вызывается при успешном завершении распознавания объектов.
+        """
         self.show_processing(
             side='left', 
             show=False
