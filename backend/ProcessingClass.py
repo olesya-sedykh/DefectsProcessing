@@ -1190,6 +1190,7 @@ class ProcessingClass:
                 detected_folder_name = f"detected_processed_{input_folder_name}"
             detected_path = Path(self.output_path) / detected_folder_name
             detected_path.mkdir(parents=True, exist_ok=True)
+            detected_path = str(detected_path)
 
             # получаем список имен изображений
             images = os.listdir(input_folder_path)
