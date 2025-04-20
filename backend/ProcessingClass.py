@@ -258,6 +258,9 @@ class ProcessingClass:
 
     def set_input_path(self, input_path):
         self.input_path = input_path
+
+    def get_input_path(self):
+        return self.input_path
     
     def cleanup(self):
         """
@@ -786,6 +789,8 @@ class ProcessingClass:
 
         # применение методов
         def apply_methods(predicted_class):
+            print('apply_methods')
+            print(predicted_class)
             # определяем, каким словарем будем пользоваться
             if processing_mode == 'automatic':
                 methods = self.__auto_methods
@@ -808,12 +813,15 @@ class ProcessingClass:
             return processed_image
 
         if defect_mode == 'one_defect':
+            print(1)
             predicted_class = self.determine_class(input_image)[0]
-            if predicted_class != 'good': results[predicted_class][0] += 1
-
-            processed_image = apply_methods(predicted_class)
-            processed_predicted_class = self.determine_class(processed_image)[0]
-            if processed_predicted_class == 'good' and predicted_class != 'good': results[predicted_class][1] += 1
+            print(2)
+            if predicted_class != 'good': 
+                results[predicted_class][0] += 1
+                processed_image = apply_methods(predicted_class)
+                processed_predicted_class = self.determine_class(processed_image)[0]
+                if processed_predicted_class == 'good': results[predicted_class][1] += 1
+            else: processed_image = input_image.copy()
 
         elif defect_mode == 'all_defects':
             defects_in_image = [] # список дефектов на картинке
@@ -961,6 +969,7 @@ class ProcessingClass:
             processed_folder_name = f"processed_{input_folder_name}"
             self.processed_path = Path(self.output_path) / processed_folder_name
             self.processed_path.mkdir(parents=True, exist_ok=True)
+            self.processed_path = str(self.processed_path)
 
             # получаем список имен изображений
             images = os.listdir(self.input_path)
@@ -970,7 +979,7 @@ class ProcessingClass:
 
                 # загружаем изображение
                 input_image = self.__cv2_imread_unicode(input_image_path)
-                if input_image is None: return None
+                if input_image is None: return None, None
 
                 # обрабатываем каждое изображение
                 processed_image, results = self.recovery(input_image, processing_mode, defect_mode)
@@ -984,12 +993,17 @@ class ProcessingClass:
                     for key in main_results
                 }
 
-                if not self.__cv2_imwrite_unicode(output_image_path, processed_image):
-                    return None
+                # if not self.__cv2_imwrite_unicode(output_image_path, processed_image):
+                #     return None
+                if self.__cv2_imwrite_unicode(output_image_path, processed_image):
+                    print('save')
+                else:
+                    return None, None
             
+            print(self.processed_path, main_results)
             return (self.processed_path, main_results)
         except:
-            return None
+            return None, None
         
     
     # ================================================================================
