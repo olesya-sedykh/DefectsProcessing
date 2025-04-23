@@ -77,6 +77,10 @@ class ProcessingWorker(QThread):
                         processed_path, result = self.processor.recovery_dataset(
                             processing_mode='automatic',
                             defect_mode='all_defects')
+                    elif self.settings['defects_type'] == 'Исправить самый частый дефект':
+                        processed_path, result = self.processor.recovery_dataset(
+                            processing_mode='automatic',
+                            defect_mode='often_defect')
                 elif self.settings['process_type'] == 'Ручная обработка':
                     if self.settings['defects_type'] == 'Исправить основной дефект':
                         processed_path, result = self.processor.recovery_dataset(
@@ -86,6 +90,10 @@ class ProcessingWorker(QThread):
                         processed_path, result = self.processor.recovery_dataset(
                             processing_mode='manual',
                             defect_mode='all_defects')
+                    elif self.settings['defects_type'] == 'Исправить самый частый дефект':
+                        processed_path, result = self.processor.recovery_dataset(
+                            processing_mode='manual',
+                            defect_mode='often_defect')
                 print(f"[DEBUG] Dataset processed - Path: {processed_path}, Result: {result}")
             elif self.settings['file_type'] == 'Обработка видео':
                 if self.settings['process_type'] == 'Автоматическая обработка':
@@ -97,6 +105,10 @@ class ProcessingWorker(QThread):
                         processed_path, result = self.processor.recovery_video(
                             processing_mode='automatic',
                             defect_mode='all_defects')
+                    elif self.settings['defects_type'] == 'Исправить самый частый дефект':
+                        processed_path, result = self.processor.recovery_video(
+                            processing_mode='automatic',
+                            defect_mode='often_defect')
                 if self.settings['process_type'] == 'Ручная обработка':
                     if self.settings['defects_type'] == 'Исправить основной дефект':
                         processed_path, result = self.processor.recovery_video(
@@ -106,6 +118,10 @@ class ProcessingWorker(QThread):
                         processed_path, result = self.processor.recovery_video(
                             processing_mode='manual',
                             defect_mode='all_defects')
+                    elif self.settings['defects_type'] == 'Исправить самый частый дефект':
+                        processed_path, result = self.processor.recovery_video(
+                            processing_mode='manual',
+                            defect_mode='often_defect')
             
             print(f"[DEBUG] Emitting finished: {processed_path}")
             self.finished.emit(processed_path, result)
@@ -271,6 +287,7 @@ class MainScreen(QMainWindow):
         self.file_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.file_type.setFont(self.font)
         self.file_type.currentTextChanged.connect(self.set_download_buttons_text)
+        self.file_type.currentTextChanged.connect(self.set_defects_types)
         left_layout.addWidget(self.file_type)
         # self.set_download_buttons_text()
 
@@ -305,8 +322,10 @@ class MainScreen(QMainWindow):
 
         # выпадающий список для выбора способа исправления дефектов
         self.defects_processing_type = QComboBox()
-        self.defects_processing_type.addItem("Исправить все дефекты")
         self.defects_processing_type.addItem("Исправить основной дефект")
+        self.defects_processing_type.addItem("Исправить все дефекты")
+        if self.file_type.currentText() != "Обработка изображения":
+            self.defects_processing_type.addItem("Исправить самый частый дефект")
         self.defects_processing_type.setFixedHeight(45)
         self.defects_processing_type.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.defects_processing_type.setFont(self.font)
@@ -462,6 +481,17 @@ class MainScreen(QMainWindow):
         if hasattr(self, 'download_process_detect_button'):
             self.download_process_detect_button.setEnabled(hasattr(self, 'detected_processed_path') and self.detected_processed_path is not None)
 
+    def set_defects_types(self):
+        """
+        Устанавливает список способов испраления дефектов 
+        (добавляет опцию исправления самого частого дефекта для видео и датасета).
+        """
+        if self.file_type.currentText() != "Обработка изображения":
+            self.defects_processing_type.addItem("Исправить самый частый дефект")
+        else:
+            item = self.defects_processing_type.findText("Исправить самый частый дефект")
+            self.defects_processing_type.removeItem(item)
+    
     def set_download_buttons_text(self):
         """
         Устанавливает нужный текст на кнопках скачивания.

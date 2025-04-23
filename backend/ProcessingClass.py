@@ -776,7 +776,77 @@ class ProcessingClass:
 
         return [predicted_class, predicted_property]
 
-    def recovery(self, input_image, processing_mode, defect_mode):
+    def find_often_defect_dataset(self):
+        try:
+            # словарь с дефектами
+            defects = {
+                'blur': 0,
+                'contrast': 0,
+                'glares': 0,
+                'noise': 0
+            }
+
+            # получаем список имен изображений
+            images = os.listdir(self.input_path)
+            for image_name in images:
+                # путь к изображению
+                input_image_path = os.path.join(self.input_path, image_name)
+
+                # загружаем изображение
+                input_image = self.__cv2_imread_unicode(input_image_path)
+                if input_image is None: return None
+
+                # узнаем вид дефекта на изображении
+                predicted_class = self.determine_class(input_image)[0]
+                if predicted_class != 'good': defects[predicted_class] += 1
+            
+            often_defect_count = max(defects.values())
+            if often_defect_count == 0: often_defect = None
+            else: often_defect = max(defects, key=defects.get)
+            return often_defect
+        except:
+            return None
+        
+    def find_often_defect_video(self):
+        try:
+            # словарь с дефектами
+            defects = {
+                'blur': 0,
+                'contrast': 0,
+                'glares': 0,
+                'noise': 0
+            }
+
+            # открываем видео
+            cap = cv2.VideoCapture(self.input_path)
+            if not cap.isOpened():
+                return None
+
+            # идем по кадрам
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                # конвертируем BGR (OpenCV) в RGB (для методов обработки)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                # узнаем вид дефекта на кадре
+                predicted_class = self.determine_class(rgb_frame)[0]
+                if predicted_class != 'good': defects[predicted_class] += 1
+            
+            # освобождаем ресурсы
+            cap.release()
+            
+            print(defects)
+            often_defect_count = max(defects.values())
+            if often_defect_count == 0: often_defect = None
+            else: often_defect = max(defects, key=defects.get)
+            return often_defect
+        except:
+            return None
+    
+    def recovery(self, input_image, processing_mode, defect_mode, often_class=None):
         print('recovery')
 
         # словарь с результатами
@@ -848,6 +918,18 @@ class ProcessingClass:
                 if defect != uncorrected_defect:
                     results[defect][1] += 1
         
+        elif defect_mode == 'often_defect':
+            if often_class == None:
+                processed_image = input_image.copy()
+            else:
+                processed_image = apply_methods(often_class)
+
+            predicted_class = self.determine_class(input_image)[0]
+            if predicted_class != 'good': 
+                results[predicted_class][0] += 1
+                processed_predicted_class = self.determine_class(processed_image)[0]
+                if processed_predicted_class == 'good': results[predicted_class][1] += 1
+        
         return (processed_image, results)
     
     def recovery_image(self, processing_mode, defect_mode, methods=None):
@@ -878,6 +960,13 @@ class ProcessingClass:
         Восстановление видео.
         """
         try:
+            if defect_mode == 'often_defect':
+                often_class = self.find_often_defect_video()
+            else:
+                often_class = None
+
+            print('OFTEN', often_class)
+
             # словарь с результатами
             main_results = {
                 'blur': [0, 0],
@@ -921,7 +1010,7 @@ class ProcessingClass:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
                 # применяем выбранный метод обработки
-                processed_frame, results = self.recovery(rgb_frame, processing_mode, defect_mode)
+                processed_frame, results = self.recovery(rgb_frame, processing_mode, defect_mode, often_class)
                 
                 # обновляем словарь с результатами
                 main_results = {
@@ -956,6 +1045,13 @@ class ProcessingClass:
         Восстановление датасета.
         """
         try:
+            if defect_mode == 'often_defect':
+                often_class = self.find_often_defect_dataset()
+            else:
+                often_class = None
+
+            print('OFTEN', often_class)
+
             # словарь с результатами
             main_results = {
                 'blur': [0, 0],
@@ -982,7 +1078,7 @@ class ProcessingClass:
                 if input_image is None: return None, None
 
                 # обрабатываем каждое изображение
-                processed_image, results = self.recovery(input_image, processing_mode, defect_mode)
+                processed_image, results = self.recovery(input_image, processing_mode, defect_mode, often_class)
 
                 # обновляем словарь с результатами
                 main_results = {

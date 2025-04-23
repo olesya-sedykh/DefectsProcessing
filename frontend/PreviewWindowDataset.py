@@ -33,8 +33,10 @@ class PreviewWindowDataset(QMainWindow):
         self.init_ui()
         
     def get_image_files(self):
-        """Получает список изображений в датасете"""
-        extensions = ['*.png', '*.jpg', '*.jpeg', '*.bmp', '*.gif']
+        """
+        Получает список изображений в датасете.
+        """
+        extensions = ['*.png', '*.jpg', '*.jpeg']
         image_files = []
         for ext in extensions:
             image_files.extend(glob.glob(os.path.join(self.dataset_path, ext)))
