@@ -45,22 +45,6 @@ class PreviewWindowVideo(QWidget):
         self.play_button.hide()
         self.play_button.clicked.connect(self.toggle_play)
         
-        self.close_button = QPushButton("×", self)
-        self.close_button.setFixedSize(30, 30)
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                border-radius: 15px;
-                border: 1px solid gray;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #f0f0f0;
-            }
-        """)
-        self.close_button.clicked.connect(self.close)
-        
         self.layout.addWidget(self.video_label)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
@@ -131,11 +115,6 @@ class PreviewWindowVideo(QWidget):
         self.play_button.move(
             (self.width() - self.play_button.width()) // 2,
             (self.height() - self.play_button.height()) // 2
-        )
-        
-        self.close_button.move(
-            self.width() - self.close_button.width() - 10,
-            10
         )
         
     def show_error(self, message):
