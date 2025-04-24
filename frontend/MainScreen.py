@@ -1711,6 +1711,9 @@ class MainScreen(QMainWindow):
         # передаем на бэкенд текущие параметры для ручной обработки
         self.processor.set_manual_methods(self.manual_methods)
 
+        # блокируем кнопку закрытия
+        self.left_close_button.setEnabled(False)
+
         # создаем и настраиваем спиннер
         self.show_processing(
             side='right', 
@@ -1735,18 +1738,22 @@ class MainScreen(QMainWindow):
         """
         Вызывается при успешном завершении процесса обработки.
         """
+        # завершаем показ спиннера
         self.show_processing(
             side='right',
             show=False
         )
+        # получаем результаты
         self.processed_path = processed_path
         self.result = result
         
+        # обновляем интерфейс
         if self.processed_path:
             self.update_display(file_path=self.processed_path, close=False, side='right')
             self.add_right_side_additional_elements()
             self.update_results_table()
             self.update_buttons_state()
+            self.left_close_button.setEnabled(True)
 
     def on_processing_error(self):
         """
@@ -1800,6 +1807,7 @@ class MainScreen(QMainWindow):
         """
         Вызывается при успешном завершении распознавания объектов.
         """
+        # убираем спиннер
         self.show_processing(
             side='left', 
             show=False
@@ -1808,6 +1816,7 @@ class MainScreen(QMainWindow):
             side='right',  
             show=False
         )
+        # получаем результаты
         self.detected_path = detected_path
         self.detected_processed_path = detected_processed_path
 
