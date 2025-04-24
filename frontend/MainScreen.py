@@ -815,8 +815,8 @@ class MainScreen(QMainWindow):
             del self.processed_path
         if hasattr(self, 'detected_path'):
             del self.detected_path
-        if hasattr(self, 'detect_processed_path'):
-            del self.detect_processed_path
+        if hasattr(self, 'detected_processed_path'):
+            del self.detected_processed_path
 
         # очищаем правую сторону
         self.clear_right_side()
