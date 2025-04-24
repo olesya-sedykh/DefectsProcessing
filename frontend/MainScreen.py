@@ -957,18 +957,18 @@ class MainScreen(QMainWindow):
         """
         if side == 'left': 
             if hasattr(self, 'detected_path') and self.detected_path:
-                self.preview_window = PreviewWindowImage(self.detected_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowImage(self.detected_path)
+                self.left_preview_window.show()
             elif hasattr(self, 'file_path') and self.file_path:
-                self.preview_window = PreviewWindowImage(self.file_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowImage(self.file_path)
+                self.left_preview_window.show()
         elif side == 'right':
             if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
-                self.preview_window = PreviewWindowImage(self.detected_processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowImage(self.detected_processed_path)
+                self.right_preview_window.show()
             elif hasattr(self, 'processed_path') and self.processed_path:
-                self.preview_window = PreviewWindowImage(self.processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowImage(self.processed_path)
+                self.right_preview_window.show()
 
     # =========================================================================
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ВИДЕО
@@ -1172,18 +1172,18 @@ class MainScreen(QMainWindow):
         """
         if side == 'left': 
             if hasattr(self, 'detected_path') and self.detected_path:
-                self.preview_window = PreviewWindowVideo(self.detected_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowVideo(self.detected_path)
+                self.left_preview_window.show()
             elif hasattr(self, 'file_path') and self.file_path:
-                self.preview_window = PreviewWindowVideo(self.file_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowVideo(self.file_path)
+                self.left_preview_window.show()
         elif side == 'right': 
             if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
-                self.preview_window = PreviewWindowVideo(self.detected_processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowVideo(self.detected_processed_path)
+                self.right_preview_window.show()
             elif hasattr(self, 'processed_path') and self.processed_path:
-                self.preview_window = PreviewWindowVideo(self.processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowVideo(self.processed_path)
+                self.right_preview_window.show()
 
     # =========================================================================
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ДАТАСЕТА
@@ -1225,18 +1225,18 @@ class MainScreen(QMainWindow):
         """        
         if side == 'left': 
             if hasattr(self, 'detected_path') and self.detected_path:
-                self.preview_window = PreviewWindowDataset(self.detected_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowDataset(self.detected_path)
+                self.left_preview_window.show()
             elif hasattr(self, 'file_path') and self.file_path:
-                self.preview_window = PreviewWindowDataset(self.file_path)
-                self.preview_window.show()
+                self.left_preview_window = PreviewWindowDataset(self.file_path)
+                self.left_preview_window.show()
         elif side == 'right': 
             if hasattr(self, 'detected_processed_path') and self.detected_processed_path:
-                self.preview_window = PreviewWindowDataset(self.detected_processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowDataset(self.detected_processed_path)
+                self.right_preview_window.show()
             elif hasattr(self, 'processed_path') and self.processed_path:
-                self.preview_window = PreviewWindowDataset(self.processed_path)
-                self.preview_window.show()
+                self.right_preview_window = PreviewWindowDataset(self.processed_path)
+                self.right_preview_window.show()
 
 
     # =========================================================================
