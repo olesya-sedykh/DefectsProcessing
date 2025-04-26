@@ -29,6 +29,11 @@ class ParameterDialog(QDialog):
                 'condition': ['gaussian'],
                 'widget_type': 'float'
             },
+            'wavelet_sigma': {
+                'source': 'wavelet_estimate_noise',
+                'condition': ['gaussian'],
+                'widget_type': 'float'
+            },
             'gradient_method': {
                 'source': 'mask_mode',
                 'condition': ['gradient', 'combine'],
@@ -126,7 +131,7 @@ class ParameterDialog(QDialog):
             widget.setCurrentText(str(original_value))
             widget_type = 'combo'
             
-            if name == 'estimate_noise' or name == 'mask_mode':
+            if name in ['estimate_noise', 'mask_mode', 'wavelet_estimate_noise']:
                 widget.currentTextChanged.connect(self.force_update_dependencies)
             # elif name == 'mask_mode':
             #     widget.currentTextChanged.connect(self.on_mask_mode_changed)
