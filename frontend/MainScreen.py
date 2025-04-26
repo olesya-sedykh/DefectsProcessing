@@ -1307,6 +1307,10 @@ class MainScreen(QMainWindow):
         """
         Добавляет остальные элементы правой части после успешной обработки
         """
+        # удаляем addStretch перед таблицей
+        if self.right_layout.count() > 0 and self.right_layout.itemAt(self.right_layout.count()-1).spacerItem():
+            self.right_layout.takeAt(self.right_layout.count()-1)
+
         # таблица с результатами обработки
         self.results_table = QTableWidget()
         self.results_table.setRowCount(4)
@@ -1318,7 +1322,8 @@ class MainScreen(QMainWindow):
         self.results_table.horizontalHeader().setStretchLastSection(True)
         self.results_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.results_table.verticalHeader().setVisible(False)
-        self.results_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self.results_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.results_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.results_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
