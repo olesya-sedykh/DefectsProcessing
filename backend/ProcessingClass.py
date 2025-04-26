@@ -30,11 +30,15 @@ class ProcessingClass:
             'blur': {
                 'defect_name': 'Размытие',
                 'methods': {
-                    'no_process': {
-                        'method_name': 'Не исправлять',
-                        'link': None,
+                    'unsharp_masking': {
+                        'method_name': 'Повышение резкости',
+                        'link': self.unsharp_masking,
                         'checked': True,
-                        'params': None
+                        'params': {
+                            'sigma': 3, 
+                            'alpha': 1.5, 
+                            'betta': -0.5
+                        }
                     }
                 }
             },
@@ -70,8 +74,7 @@ class ProcessingClass:
                         'link': self.adaptive_average_filter,
                         'checked': True,
                         'params': {
-                            'estimate_noise': 'gaussian',
-                            'sigma': 5
+                            'estimate_noise': 'function'
                         }
                     }
                 }
