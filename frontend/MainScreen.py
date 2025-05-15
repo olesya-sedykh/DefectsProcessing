@@ -288,6 +288,7 @@ class MainScreen(QMainWindow):
         self.file_type.setFont(self.font)
         self.file_type.currentTextChanged.connect(self.set_download_buttons_text)
         self.file_type.currentTextChanged.connect(self.set_defects_types)
+        self.file_type.currentTextChanged.connect(self.set_load_button_text)
         left_layout.addWidget(self.file_type)
         # self.set_download_buttons_text()
 
@@ -523,6 +524,13 @@ class MainScreen(QMainWindow):
             elif self.file_type.currentText() == 'Обработка датасета':
                 self.download_detect_button.setText("Скачать размеченный датасет")
 
+    def set_load_button_text(self):
+        if hasattr(self, 'file_type'):
+            if self.file_type.currentText() == 'Обработка датасета':
+                self.load_button.setText('Загрузить\nпапку')
+            else:
+                self.load_button.setText('Загрузить\nфайл')
+
     def download_files(self, path):
         """
         Реализует скачивание файлов.
@@ -642,7 +650,10 @@ class MainScreen(QMainWindow):
         button_horizontal_layout.addStretch()
 
         # кнопка загрузки
-        self.load_button = QPushButton('Загрузить\nфайл')
+        if self.file_type.currentText() == 'Обработка датасета':
+            self.load_button = QPushButton('Загрузить\nпапку')
+        else:
+            self.load_button = QPushButton('Загрузить\nфайл')
         self.load_button.setFixedSize(200, 170)
         self.load_button.setStyleSheet(
             self.buttons_style +
