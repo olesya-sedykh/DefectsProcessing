@@ -605,10 +605,10 @@ class MainScreen(QMainWindow):
             )
 
         if self.file_path:
-            # отображаем файл
-            self.update_display(file_path=self.file_path, close=True, side='left')
             # передаем путь к файлу в объект класса-обработчика
             self.processor.set_input_path(self.file_path)
+            # отображаем файл
+            self.update_display(file_path=self.file_path, close=True, side='left')
             # обновляем состояние кнопок
             self.update_buttons_state()
 
