@@ -654,7 +654,7 @@ class MainScreen(QMainWindow):
                 self,
                 "Выберите файл видео",
                 "",
-                "Videos (*.mp4 *.avi);;All Files (*)",
+                "Videos (*.mp4 *.mov *.avi);;All Files (*)",
                 options=options
             )
             if self.file_path and not self.file_path.lower().endswith(('.mp4', '.avi', '.mov')):
