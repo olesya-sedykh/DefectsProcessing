@@ -461,12 +461,28 @@ class MainScreen(QMainWindow):
         return super().eventFilter(obj, event)
 
     def show_errors(self, text, parent_layout):
+        """
+        Отображает ошибки, если они есть. Принимает текст ошибки и виджет,
+        на котором ее надо отобразить.
+        """
+        self.clear_errors(parent_layout) # очищаем предыдущие ошибки
         error_widget = QLabel()
         error_widget.setText(text)
         error_widget.setStyleSheet("color: red;")
         error_widget.setAlignment(Qt.AlignCenter)
+        error_widget.setProperty("is_error", True)  # помечаем как виджет ошибки
         parent_layout.addWidget(error_widget)
-    
+        self.update_buttons_state() # обновляем состояние кнопок
+
+    def clear_errors(self, parent_layout):
+        """
+        Удаляет все виджеты с ошибками из указанного layout
+        """
+        for i in reversed(range(parent_layout.count())):
+            widget = parent_layout.itemAt(i).widget()
+            if widget and widget.property("is_error"): # удаляются только виджеты со свойством is_error
+                widget.deleteLater()
+        
     def update_buttons_state(self):
         """
         Обновляет состояние всех кнопок.
@@ -565,6 +581,35 @@ class MainScreen(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл:\n{str(e)}")
 
+    def is_valid_dataset(self, folder_path):
+        """
+        Проверяет, что папка содержит только изображения.
+        """
+        if not os.path.isdir(folder_path):
+            return False
+
+        valid_extensions = ('.png', '.jpg')
+        has_images = False
+
+        for filename in os.listdir(folder_path):
+            filepath = os.path.join(folder_path, filename)
+            
+            # подпапки
+            if os.path.isdir(filepath):
+                return False
+                
+            # расширение
+            if not filename.lower().endswith(valid_extensions):
+                return False
+                
+            # проверка самого файла
+            if cv2.imread(filepath) is None:
+                return False
+                
+            has_images = True
+            
+        return has_images
+    
     def clear_temp_folder(self):
         """
         Очищает папку с файлами.
@@ -597,6 +642,12 @@ class MainScreen(QMainWindow):
                 "Images (*.png *.jpg);;All Files (*)",
                 options=options
             )
+            if self.file_path and not self.file_path.lower().endswith(('.png', '.jpg')):
+                self.file_path = None
+                self.show_errors(
+                    "Ошибка: неподдерживаемое расширение", 
+                    self.file_layout
+                )
         elif processing_type == "Обработка видео":
             options = QFileDialog.Options()
             self.file_path, _ = QFileDialog.getOpenFileName(
@@ -606,19 +657,38 @@ class MainScreen(QMainWindow):
                 "Videos (*.mp4 *.avi);;All Files (*)",
                 options=options
             )
+            if self.file_path and not self.file_path.lower().endswith(('.mp4', '.avi', '.mov')):
+                self.file_path = None
+                self.show_errors(
+                    "Ошибка: неподдерживаемое расширение", 
+                    self.file_layout
+                )
         elif processing_type == "Обработка датасета":
             self.file_path = QFileDialog.getExistingDirectory(
                 self,
                 "Выберите папку с датасетом"
             )
+            if self.file_path and not self.is_valid_dataset(self.file_path):
+                self.file_path = None
+                self.show_errors(
+                    "Ошибка: папка должна содержать только изображения",
+                    self.file_layout
+                )
 
         if self.file_path:
-            # передаем путь к файлу в объект класса-обработчика
-            self.processor.set_input_path(self.file_path)
-            # отображаем файл
-            self.update_display(file_path=self.file_path, close=True, side='left')
-            # обновляем состояние кнопок
-            self.update_buttons_state()
+            try:
+                # передаем путь к файлу в объект класса-обработчика
+                self.processor.set_input_path(self.file_path)
+                # отображаем файл
+                self.update_display(file_path=self.file_path, close=True, side='left')
+                # обновляем состояние кнопок
+                self.update_buttons_state()
+            except Exception as e:
+                self.file_path = None
+                self.show_errors(
+                    "Ошибка при загрузке файла", 
+                    self.file_layout
+                )
 
     def update_display(self, file_path, close, side):
         """
@@ -835,6 +905,11 @@ class MainScreen(QMainWindow):
         # очищаем временную папку
         self.clear_temp_folder()
 
+        # очищаем путь к файлу
+        self.file_path = None
+        # обновляем состояние кнопок
+        self.update_buttons_state()
+
         # опять создаем контейнер для кнопки загрузки и саму кнопку
         self.create_load_button()
 
@@ -932,6 +1007,7 @@ class MainScreen(QMainWindow):
             # error_widget.setStyleSheet("color: red;")
             # error_widget.setAlignment(Qt.AlignCenter)
             # self.file_layout.addWidget(error_widget)
+            self.file_path = None
             self.show_errors(
                 text="Ошибка: не удалось загрузить изображение", 
                 parent_layout=self.file_layout
@@ -996,6 +1072,7 @@ class MainScreen(QMainWindow):
             # error_widget.setStyleSheet("color: red;")
             # error_widget.setAlignment(Qt.AlignCenter)
             # self.file_layout.addWidget(error_widget)
+            self.file_path = None
             self.show_errors(
                 text="Ошибка: файл не найден", 
                 parent_layout=self.file_layout
@@ -1010,8 +1087,9 @@ class MainScreen(QMainWindow):
             # error_widget.setStyleSheet("color: red;")
             # error_widget.setAlignment(Qt.AlignCenter)
             # self.file_layout.addWidget(error_widget)
+            self.file_path = None
             self.show_errors(
-                text="Ошибка: не удалось открыть видео", 
+                text="Ошибка: не удалось загрузить видео", 
                 parent_layout=self.file_layout
             )
             return
