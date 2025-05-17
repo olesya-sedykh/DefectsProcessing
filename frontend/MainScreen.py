@@ -36,6 +36,7 @@ MODEL_PATH = PROJECT_ROOT / 'mobile_net_model.h5'
 YOLO_RAW_PATH = PROJECT_ROOT / 'yolo_raw.pt'
 YOLO_BEST_PATH = PROJECT_ROOT / 'yolo_best.pt'
 OUTPUT_PATH = PROJECT_ROOT / 'temp'
+ICONS_PATH = PROJECT_ROOT / 'icons'
 
 class ProcessingWorker(QThread):
     finished = pyqtSignal(str, dict)  # cигнал с результатами
@@ -1338,7 +1339,10 @@ class MainScreen(QMainWindow):
         Параметр close определяет наличие кнопки закрытия.
         """
         # cоздаем иконку папки для представления датасета
+        # folder_icon = QPixmap("icons/folder_4.png")
         folder_icon = QPixmap("icons/folder_4.png")
+        # folder_icon = QPixmap(str(ICONS_PATH + "/folder_4.png"))
+        folder_icon = QPixmap(f"{ICONS_PATH}/folder_4.png")
         folder_pixmap = folder_icon.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         # создаем элементы показа
@@ -1798,7 +1802,9 @@ class MainScreen(QMainWindow):
             gif_layout.setAlignment(Qt.AlignCenter)
             
             # создаем и настраиваем QMovie
-            movie = QMovie("icons/loading.gif")
+            # movie = QMovie("icons/loading.gif")
+            # movie = QMovie(str(ICONS_PATH + "/loading.gif"))
+            movie = QMovie(f"{ICONS_PATH}/loading.gif")
             movie.setScaledSize(QSize(200, 200))
             setattr(self, movie_attr, movie)
             
