@@ -35,8 +35,18 @@ class ProcessingClass:
                         'link': self.unsharp_masking,
                         'checked': True,
                         'params': {
-                            'sigma': 3, 
-                            'alpha': 1.5
+                            'sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            },
+                            'alpha': {
+                                'name': 'Степень резкости',
+                                'value': 1.5,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            }
                         }
                     }
                 }
@@ -49,7 +59,11 @@ class ProcessingClass:
                         'link': self.hist_equalization,
                         'checked': True,
                         'params': {
-                            'color_space_hist': 'hsv'
+                            'color_space_hist': {
+                                'name': 'Цветовое пространство',
+                                'value': 'hsv',
+                                'type': 'combo',
+                            }
                         }
                     }
                 }
@@ -73,7 +87,11 @@ class ProcessingClass:
                         'link': self.adaptive_average_filter,
                         'checked': True,
                         'params': {
-                            'estimate_noise': 'function'
+                            'estimate_noise': {
+                                'name': 'Оценка шума',
+                                'value': 'function',
+                                'type': 'combo',
+                            }
                         }
                     }
                 }
@@ -95,8 +113,18 @@ class ProcessingClass:
                         'link': self.unsharp_masking,
                         'checked': True,
                         'params': {
-                            'sigma': 3, 
-                            'alpha': 1.5
+                            'sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            },
+                            'alpha': {
+                                'name': 'Степень резкости',
+                                'value': 1.5,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            }
                         }
                     },
                     'laplacian_sharpening': {
@@ -104,7 +132,12 @@ class ProcessingClass:
                         'link': self.laplacian_sharpening,
                         'checked': False,
                         'params': {
-                            'coeff': 1
+                            'coeff': {
+                                'name': 'Степень резкости',
+                                'value': 1,
+                                'bounds': (0.01, 100),
+                                'type': 'float'
+                            }
                         }
                     }
                 }
@@ -123,7 +156,11 @@ class ProcessingClass:
                         'link': self.hist_equalization,
                         'checked': True,
                         'params': {
-                            'color_space_hist': 'hsv'
+                            'color_space_hist': {
+                                'name': 'Цветовое пространство',
+                                'value': 'hsv',
+                                'type': 'combo',
+                            }
                         }
                     },
                     'clahe_algorithm': {
@@ -131,9 +168,23 @@ class ProcessingClass:
                         'link': self.clahe_algorithm,
                         'checked': False,
                         'params': {
-                            'color_space_hist': 'hsv',
-                            'clip_limit': 2.5,
-                            'tile_grid_size': (8, 8)
+                            'color_space_hist': {
+                                'name': 'Цветовое пространство',
+                                'value': 'hsv',
+                                'type': 'combo',
+                            },
+                            'clip_limit': {
+                                'name': 'Порог отсечения',
+                                'value': 2.5,
+                                'bounds': (0.01, 100),
+                                'type': 'float',
+                            },
+                            'tile_grid_size': {
+                                'name': 'Размер блоков',
+                                'value': (8, 8),
+                                'bounds': (1, 100),
+                                'type': 'tuple'
+                            }
                         }
                     }
                 }
@@ -152,14 +203,49 @@ class ProcessingClass:
                         'link': self.simple_inpaint,
                         'checked': True,
                         'params': {
-                            'mask_mode': 'brightness',
-                            'color_space_mask': 'hsv',
-                            'color_space': 'yuv',
-                            'threshold': 160,
-                            'inpaint_radius': 3,
-                            'flags': 'inpaint_ns',
-                            'gradient_method': 'sobel',
-                            'gradient_threshold': 100
+                            'mask_mode': {
+                                'name': 'Режим построения маски',
+                                'value': 'brightness',
+                                'type': 'combo'
+                            },
+                            'color_space_mask': {
+                                'name': 'Цветовое пространство для маски',
+                                'value': 'hsv',
+                                'type': 'combo'
+                            },
+                            'color_space': {
+                                'name': 'Цветовое пространство',
+                                'value': 'yuv',
+                                'type': 'combo',
+                            },
+                            'threshold': {
+                                'name': 'Порог по яркости',
+                                'value': 160,
+                                'bounds': (0, 255),
+                                'type': 'int'
+                            },
+                            'inpaint_radius': {
+                                'name': 'Радиус восстановления',
+                                'value': 3,
+                                'bounds': (1, 100),
+                                'type': 'int'
+                            },
+                            'flags': {
+                                'name': 'Метод восстановления',
+                                'value': 'inpaint_ns',
+                                'type': 'combo'
+                            },
+                            'gradient_method': {
+                                'name': 'Градиентный оператор',
+                                'value': 'sobel',
+                                'type': 'combo'
+                            },
+                            'gradient_threshold': {
+                                'name': 'Порог по градиенту',
+                                'value': 100,
+                                'bounds': (0, 255),
+                                'type': 'int'
+                            }
                         }
                     },
                     'adaptive_inpaint': {
@@ -167,16 +253,60 @@ class ProcessingClass:
                         'link': self.adaptive_inpaint,
                         'checked': False,
                         'params': {
-                            'mask_mode': 'brightness',
-                            'color_space_mask': 'hsv',
-                            'color_space': 'yuv',
-                            'adaptive_method': 'gaussian',
-                            'block_size': 7,
-                            'C': 5,
-                            'inpaint_radius': 3,
-                            'flags': 'inpaint_ns',
-                            'gradient_method': 'sobel',
-                            'gradient_threshold': 100
+                            'mask_mode': {
+                                'name': 'Режим построения маски',
+                                'value': 'brightness',
+                                'type': 'combo'
+                            },
+                            'color_space_mask': {
+                                'name': 'Цветовое пространство для маски',
+                                'value': 'hsv',
+                                'type': 'combo'
+                            },
+                            'color_space': {
+                                'name': 'Цветовое пространство',
+                                'value': 'yuv',
+                                'type': 'combo',
+                            },
+                            'adaptive_method': {
+                                'name': 'Метод вычисления порога',
+                                'value': 'gaussian_av',
+                                'type': 'combo',
+                            },
+                            'block_size': {
+                                'name': 'Размер блоков',
+                                'value': 7,
+                                'bounds': (1, 100),
+                                'type': 'int'
+                            },
+                            'C': {
+                                'name': 'Вычитаемая константа',
+                                'value': 5,
+                                'bounds': (1, 10),
+                                'type': 'int'
+                            },
+                            'inpaint_radius': {
+                                'name': 'Радиус восстановления',
+                                'value': 3,
+                                'bounds': (1, 100),
+                                'type': 'int'
+                            },
+                            'flags': {
+                                'name': 'Метод восстановления',
+                                'value': 'inpaint_ns',
+                                'type': 'combo'
+                            },
+                            'gradient_method': {
+                                'name': 'Градиентный оператор',
+                                'value': 'sobel',
+                                'type': 'combo'
+                            },
+                            'gradient_threshold': {
+                                'name': 'Порог по градиенту',
+                                'value': 100,
+                                'bounds': (0, 255),
+                                'type': 'int'
+                            }
                         }
                     }
                 }
@@ -195,8 +325,17 @@ class ProcessingClass:
                         'link': self.adaptive_average_filter,
                         'checked': True,
                         'params': {
-                            'estimate_noise': 'gaussian',
-                            'sigma': 5
+                            'estimate_noise': {
+                                'name': 'Оценка шума',
+                                'value': 'gaussian',
+                                'type': 'combo',
+                            },
+                            'sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            },
                         }
                     },
                     'adaptive_median_filter': {
@@ -204,8 +343,17 @@ class ProcessingClass:
                         'link': self.adaptive_median_filter,
                         'checked': False,
                         'params': {
-                            'estimate_noise': 'gaussian',
-                            'sigma': 5
+                            'estimate_noise': {
+                                'name': 'Оценка шума',
+                                'value': 'gaussian',
+                                'type': 'combo',
+                            },
+                            'sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            },
                         }
                     },
                     'adaptive_gaussian_filter': {
@@ -213,8 +361,17 @@ class ProcessingClass:
                         'link': self.adaptive_gaussian_filter,
                         'checked': False,
                         'params': {
-                            'estimate_noise': 'gaussian',
-                            'sigma': 5
+                            'estimate_noise': {
+                                'name': 'Оценка шума',
+                                'value': 'gaussian',
+                                'type': 'combo',
+                            },
+                            'sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            },
                         }
                     },
                     'wavelet_processing_color': {
@@ -222,11 +379,33 @@ class ProcessingClass:
                         'link': self.wavelet_processing_color,
                         'checked': False,
                         'params': {
-                            'wavelet_type': 'haar',
-                            'wavelet_mode': 'hard',
-                            'number_of_levels': 3,
-                            'wavelet_estimate_noise': 'function',
-                            'wavelet_sigma': 3
+                            'wavelet_type': {
+                                'name': 'Тип вейвлета',
+                                'value': 'haar',
+                                'type': 'combo',
+                            },
+                            'wavelet_mode': {
+                                'name': 'Режим вейвлет-обработки',
+                                'value': 'hard',
+                                'type': 'combo',
+                            },
+                            'number_of_levels': {
+                                'name': 'Число уровней разложения',
+                                'value': 3,
+                                'bounds': (1, 4),
+                                'type': 'int',
+                            },
+                            'wavelet_estimate_noise': {
+                                'name': 'Оценка шума',
+                                'value': 'function',
+                                'type': 'combo',
+                            },
+                            'wavelet_sigma': {
+                                'name': 'СКО гауссова ядра',
+                                'value': 3,
+                                'bounds': (0.01, 100.0),
+                                'type': 'float',
+                            }
                         }
                     },
                     'non_local_means': {
@@ -234,9 +413,24 @@ class ProcessingClass:
                         'link': self.non_local_means,
                         'checked': False,
                         'params': {
-                            'h': 10,
-                            'template_window_size': 7,
-                            'search_window_size': 21
+                            'h': {
+                                'name': 'Степень сглаживания',
+                                'value': 10,
+                                'bounds': (1, 30),
+                                'type': 'int',
+                            },
+                            'template_window_size': {
+                                'name': 'Размер патча',
+                                'value': 7,
+                                'bounds': (1, 40),
+                                'type': 'int',
+                            },
+                            'search_window_size': {
+                                'name': 'Размер окна поиска',
+                                'value': 21,
+                                'bounds': (1, 60),
+                                'type': 'int',
+                            }
                         }
                     },
                 }
@@ -246,15 +440,41 @@ class ProcessingClass:
         self.__allowed_params_values = {
             'color_space_hist': ['hsv', 'yuv'],
             'color_space': ['hsv', 'rgb', 'yuv'],
-            'mask_mode': ['brightness', 'gradient', 'combine'],
+            'mask_mode': ['brightness', 'combine'],
             'color_space_mask': ['hsv', 'gray', 'yuv'],
             'flags': ['inpaint_ns', 'inpaint_telea'],
             'gradient_method': ['sobel', 'scharr', 'laplacian'],
-            'adaptive_method': ['gaussian', 'mean'],
+            'adaptive_method': ['gaussian_av', 'mean'],
             'estimate_noise': ['function', 'gaussian'], 
             'wavelet_type': ['haar', 'db2', 'db4', 'sym2', 'bior1.3'],
             'wavelet_mode': ['hard', 'soft'],
             'wavelet_estimate_noise': ['function', 'gaussian', 'wavelet'],
+        }
+
+        self.__params_mapping = {
+            'hsv': 'пространство HSV',
+            'yuv': 'пространство YUV',
+            'rgb': 'пространство RGB',
+            'gray': 'черно-белое',
+            'brightness': 'по яркости',
+            'combine': 'по яркости и градиенту',
+            'inpaint_ns': 'Навье-Стокса',
+            'inpaint_telea': 'Телеа',
+            'sobel': 'Собеля',
+            'scharr': 'Щарра',
+            'laplacian': 'Лапласа',
+            'gaussian_av': 'с помощью взвешенного среднего',
+            'mean': 'с помощью среднего',
+            'function': 'с помощью медианного отклонения',
+            'gaussian': 'с помощью гауссова ядра',
+            'wavelet': 'с помощью вейвлет-разложения',
+            'haar': 'Хаара',
+            'db2': 'Добеши-2',
+            'db4': 'Добеши-4',
+            'sym2': 'Симлет',
+            'bior1.3': 'Биортогональный 1.3',
+            'hard': 'резкий',
+            'soft': 'плавный'
         }
 
     def set_input_path(self, input_path):
@@ -272,6 +492,9 @@ class ProcessingClass:
 
     def get_allowed_params(self):
         return self.__allowed_params_values
+    
+    def get_params_mapping(self):
+        return self.__params_mapping
     
     def get_auto_methods(self):
         return self.__auto_methods
@@ -545,7 +768,7 @@ class ProcessingClass:
         if flags == 'inpaint_ns': inpaint_mode = cv2.INPAINT_NS
         elif flags == 'inpaint_telea': inpaint_mode = cv2.INPAINT_TELEA
 
-        if adaptive_method == 'gaussian': adaptive_mode = cv2.ADAPTIVE_THRESH_GAUSSIAN_C
+        if adaptive_method == 'gaussian_av': adaptive_mode = cv2.ADAPTIVE_THRESH_GAUSSIAN_C
         elif adaptive_method == 'mean': adaptive_mode = cv2.ADAPTIVE_THRESH_MEAN_C
 
         # преобразование изображения в нужное цветовое пространство для маски
@@ -910,7 +1133,9 @@ class ProcessingClass:
                     if defect_method_key == 'no_process':
                         return input_image.copy()
                     defect_method_link = defect_method_content['link']
-                    params = defect_method_content['params']
+                    # params = defect_method_content['params']
+                    params = {param_name: param_config['value'] 
+                        for param_name, param_config in defect_method_content['params'].items()}
                     print(params)
                     processed_image = defect_method_link(input_image, **params)
 

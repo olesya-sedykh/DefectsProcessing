@@ -6,9 +6,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QTimer
 
 class ParameterDialog(QDialog):
-    def __init__(self, method_name, parameters, allowed_params_values, editable=False, parent=None):
+    def __init__(self, method_name, parameters_config, params_mapping, allowed_params_values, editable=False, parent=None):
         super().__init__(parent)
         self.method_name = method_name
+        self.params_mapping = params_mapping
+        self.parameters_config = parameters_config
         self.allowed_params_values = allowed_params_values
         self.editable = editable
 
@@ -16,9 +18,12 @@ class ParameterDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(350)
         
+        # приводим параметры к виду 'param = value'
+        self.original_parameters = {name: config['value'] for name, config in parameters_config.items()}
+        self.current_parameters = {name: config['value'] for name, config in parameters_config.items()}
         # глубокое копирование параметров
-        self.original_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
-        self.current_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
+        # self.original_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
+        # self.current_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
         
         # начальная инициализация
         self.init_ui()
@@ -75,7 +80,7 @@ class ParameterDialog(QDialog):
         for parameter_name in param_order:
             # берем лишь те параметры из списка, которые нам нужны в текущий момент
             if parameter_name in self.current_parameters:
-                self.create_parameter_row(parameter_name, self.current_parameters[parameter_name])
+                self.create_parameter_row(parameter_name)
         
         # добавляем виджет формы в область
         self.scroll_area.setWidget(self.content_widget)
@@ -102,6 +107,9 @@ class ParameterDialog(QDialog):
                     current_value = source_widget.currentText()
                 else:
                     current_value = str(source_widget.value())
+
+                # заменяем русские названия на английские
+                current_value = next(k for k, v in self.params_mapping.items() if v == current_value)
                 # print(f"Проверка зависимости: {dependent} <- {config['source']} = {current_value} (должно быть в {config['condition']})")
                 
                 # определяем по условию, должен ли зависимый виджет отображаться
@@ -113,51 +121,73 @@ class ParameterDialog(QDialog):
         # автоматическое обновление размеров виджета в соответствии с содержимым
         self.content_widget.adjustSize()
     
-    def create_parameter_row(self, name, value):
+    def create_parameter_row(self, name):
         """
         Создание строки параметра.
         """
+        config = self.parameters_config[name]
+        value = config['value']
+        display_name = config['name']
+        widget_type = config['type']
+
         row_widget = QWidget()
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 0, 0, 0)
 
         # берется значение по ключу name, а если его нет, то берется value
-        original_value = self.original_parameters.get(name, value)
+        # original_value = self.original_parameters.get(name, value)
         
-        if isinstance(original_value, str):
+        # if isinstance(original_value, str):
+        #     widget = QComboBox()
+        #     items = self.allowed_params_values[name]
+        #     widget.addItems(items)
+        #     widget.setCurrentText(str(original_value))
+        #     widget_type = 'combo'
+            
+        #     if name in ['estimate_noise', 'mask_mode', 'wavelet_estimate_noise']:
+        #         widget.currentTextChanged.connect(self.force_update_dependencies)
+
+        if widget_type == 'combo':
             widget = QComboBox()
             items = self.allowed_params_values[name]
-            widget.addItems(items)
-            widget.setCurrentText(str(original_value))
-            widget_type = 'combo'
+            translated_items = [self.params_mapping[item] for item in items]
+            widget.addItems(translated_items)
+            # widget.setCurrentText(str(self.params_mapping[original_value]))
+            widget.setCurrentText(self.params_mapping.get(str(value), str(value)))
+
+            for item in config.get('options', []):
+                widget.addItem(self.params_mapping.get(item, item), item)
+            widget.setCurrentText(self.params_mapping.get(str(value), str(value)))
             
             if name in ['estimate_noise', 'mask_mode', 'wavelet_estimate_noise']:
                 widget.currentTextChanged.connect(self.force_update_dependencies)
-            # elif name == 'mask_mode':
-            #     widget.currentTextChanged.connect(self.on_mask_mode_changed)
-        elif isinstance(original_value, int):
+
+        elif widget_type == 'int':
             widget = QSpinBox()
-            widget.setRange(0, 1000)
+            min_val, max_val = config['bounds']            
+            widget.setRange(min_val, max_val)
             widget.setValue(int(value))
-            widget_type = 'int'
-        elif isinstance(original_value, float):
+        
+        elif widget_type == 'float':
             widget = QDoubleSpinBox()
-            widget.setRange(-1000.0, 1000.0)
-            widget.setSingleStep(0.1)
+            min_val, max_val = config['bounds']
+            widget.setRange(min_val, max_val)
             widget.setValue(float(value))
-            widget_type = 'float'
-        elif isinstance(original_value, tuple) and len(value) == 2:
+
+        elif widget_type == 'tuple' and len(value) == 2:
+            min_val, max_val = config['bounds']
+
             label_left = QLabel("(")
             spin1 = QSpinBox()
-            spin1.setRange(0, 1000)
-            spin1.setValue(original_value[0])
+            spin1.setRange(min_val, max_val)
+            spin1.setValue(value[0])
             spin1.setEnabled(self.editable)
 
             label_comma = QLabel(",")
 
             spin2 = QSpinBox()
-            spin2.setRange(0, 1000)
-            spin2.setValue(original_value[1])
+            spin2.setRange(min_val, max_val)
+            spin2.setValue(value[1])
             spin2.setEnabled(self.editable)
             label_right = QLabel(")")
     
@@ -168,17 +198,16 @@ class ParameterDialog(QDialog):
             row_layout.addWidget(label_right)
     
             widget = (spin1, spin2)
-            widget_type = 'tuple'
         else:
             widget = QLineEdit(str(value))
             widget_type = 'text'
 
-        if not isinstance(value, tuple):
+        if widget_type != 'tuple':
             row_layout.addWidget(widget)
             row_layout.addStretch()
             widget.setEnabled(self.editable)
 
-        label = QLabel(name)
+        label = QLabel(display_name)
         self.content_layout.addRow(label, row_widget)
         self.widgets[name] = (widget, widget_type)
         self.rows[name] = (label, row_widget)
@@ -205,27 +234,52 @@ class ParameterDialog(QDialog):
         """
         Сохранение параметров и закрытие.
         """
-        self.current_parameters = self.get_parameters()
+        # self.current_parameters = self.get_parameters()
+        current_config = self.get_parameters()
+        self.current_parameters = {name: config['value'] for name, config in current_config.items()}
         self.accept()
     
     def get_parameters(self):
         """
-        Получение текущих параметров.
+        Получение текущих значений параметров в виде структурированного конфига
+        (аналогично входному parameters_config)
         """
-        params = {}
+        params_config = {}
         for name, (widget, widget_type) in self.widgets.items():
-            if name in self.original_parameters:
-                original_value = self.original_parameters[name]
-                
+            if name in self.parameters_config:
+                param_config = self.parameters_config[name].copy()
+
                 if widget_type == 'combo':
-                    params[name] = str(widget.currentText())
+                    current_value = next(k for k, v in self.params_mapping.items() if v == widget.currentText())
+                    param_config['value'] = current_value
                 elif widget_type == 'int':
-                    params[name] = int(widget.value())
+                    param_config['value'] = int(widget.value())
                 elif widget_type == 'float':
-                    params[name] = float(widget.value())
+                    param_config['value'] = float(widget.value())
                 elif widget_type == 'tuple':
-                    print('TUPLE_WIDGET', widget)
-                    params[name] = (widget[0].value(), widget[1].value())
+                    param_config['value'] = (widget[0].value(), widget[1].value())
                 else:
-                    params[name] = widget.text()
-        return params
+                    param_config['value'] = widget.text()
+                
+                params_config[name] = param_config
+        
+        return params_config
+    
+    # def get_parameters(self):
+    #     """
+    #     Получение текущих значений параметров.
+    #     """
+    #     params = {}
+    #     for name, (widget, widget_type) in self.widgets.items():
+    #         if name in self.original_parameters:
+    #             if widget_type == 'combo':
+    #                 params[name] = widget.currentData()
+    #             elif widget_type == 'int':
+    #                 params[name] = int(widget.value())
+    #             elif widget_type == 'float':
+    #                 params[name] = float(widget.value())
+    #             elif widget_type == 'tuple':
+    #                 params[name] = (widget[0].value(), widget[1].value())
+    #             else:
+    #                 params[name] = widget.text()
+    #     return params

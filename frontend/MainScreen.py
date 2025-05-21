@@ -28,7 +28,7 @@ os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 from frontend.PreviewWindowImage import PreviewWindowImage
 from frontend.PreviewWindowVideo import PreviewWindowVideo
 from frontend.PreviewWindowDataset import PreviewWindowDataset
-from ParameterDialog import ParameterDialog
+from frontend.ParameterDialog import ParameterDialog
 from backend.ProcessingClass import ProcessingClass
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -249,6 +249,7 @@ class MainScreen(QMainWindow):
         self.auto_methods = self.processor.get_auto_methods()
         self.manual_methods = self.processor.get_manual_methods()
         self.allowed_params_values = self.processor.get_allowed_params()
+        self.params_mapping = self.processor.get_params_mapping()
 
         # для управления обработкой
         # self.right_movie = None
@@ -1710,9 +1711,18 @@ class MainScreen(QMainWindow):
             if method['checked']    
         )
         # получаем параметры для выбранного метода
-        params = methods_dict[defect_key]['methods'][checked_method_key]['params']
+        # params = methods_dict[defect_key]['methods'][checked_method_key]['params']
+        params_config = methods_dict[defect_key]['methods'][checked_method_key]['params']
+        # params = {param_name: param_config['value'] 
+        #                 for param_name, param_config in params_config.items()}
         
-        dialog = ParameterDialog(method_name, params, self.allowed_params_values, editable)
+        dialog = ParameterDialog(
+            method_name, 
+            params_config, 
+            self.params_mapping, 
+            self.allowed_params_values, 
+            editable
+        )
         if dialog.exec_() == QDialog.Accepted and editable:
             # сохраняем обновленные параметры
             methods_dict[defect_key]['methods'][checked_method_key]['params'] = dialog.get_parameters()
