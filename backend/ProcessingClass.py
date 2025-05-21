@@ -36,8 +36,7 @@ class ProcessingClass:
                         'checked': True,
                         'params': {
                             'sigma': 3, 
-                            'alpha': 1.5, 
-                            'betta': -0.5
+                            'alpha': 1.5
                         }
                     }
                 }
@@ -97,8 +96,7 @@ class ProcessingClass:
                         'checked': True,
                         'params': {
                             'sigma': 3, 
-                            'alpha': 5.5, 
-                            'betta': -4.5
+                            'alpha': 1.5
                         }
                     },
                     'laplacian_sharpening': {
@@ -106,7 +104,7 @@ class ProcessingClass:
                         'link': self.laplacian_sharpening,
                         'checked': False,
                         'params': {
-                            'coeff': 6
+                            'coeff': 1
                         }
                     }
                 }
@@ -134,8 +132,8 @@ class ProcessingClass:
                         'checked': False,
                         'params': {
                             'color_space_hist': 'hsv',
-                            'clip_limit': 6.5,
-                            'tile_grid_size': (12, 12)
+                            'clip_limit': 2.5,
+                            'tile_grid_size': (8, 8)
                         }
                     }
                 }
@@ -288,7 +286,7 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ РАЗМЫТЫХ ИЗОБРАЖЕНИЙ
     # ================================================================================
 
-    def unsharp_masking(self, image, sigma=3, alpha=2.5, betta=-1.5):
+    def unsharp_masking(self, image, sigma, alpha):
         """
         Восстановление путем вычитания размытого из исходного.
         На вход подается исходное, которое размыто,
@@ -296,7 +294,7 @@ class ProcessingClass:
         Затем разность прибавляется к исходному размытому - для увеличения резкости.
         Принимает коэффициенты: положительный и отрицательный. Их сумма должна быть равна 1.
         """
-        print('unsharp_masking')
+        betta = 1 - alpha
         blurred_image = cv2.GaussianBlur(image, (0, 0), sigmaX=sigma)
         sharpened_image = cv2.addWeighted(image, alpha, blurred_image, betta, 0)
         return sharpened_image

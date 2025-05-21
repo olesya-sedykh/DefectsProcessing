@@ -1922,6 +1922,8 @@ class MainScreen(QMainWindow):
             parent_layout=self.result_layout
         )
 
+        self.left_close_button.setEnabled(True)
+
     
     # =========================================================================
     # РАСПОЗНАВАНИЕ ОБЪЕКТОВ
