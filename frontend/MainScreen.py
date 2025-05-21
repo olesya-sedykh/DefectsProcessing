@@ -1333,7 +1333,7 @@ class MainScreen(QMainWindow):
     # ФУНКЦИИ ДЛЯ ОТОБРАЖЕНИЯ ДАТАСЕТА
     # =========================================================================
 
-    def display_dataset(self, file_path, close, side):
+    def display_dataset(self, close, side):
         """
         Отображает иконку датасета в маленьком окошке.
         Параметр close определяет наличие кнопки закрытия.

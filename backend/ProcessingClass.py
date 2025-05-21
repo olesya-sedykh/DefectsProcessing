@@ -149,9 +149,9 @@ class ProcessingClass:
                         'checked': False,
                         'params': None
                     },
-                    'glares_inpaint': {
+                    'simple_inpaint': {
                         'method_name': 'Простое восстановление',
-                        'link': self.glares_inpaint,
+                        'link': self.simple_inpaint,
                         'checked': True,
                         'params': {
                             'mask_mode': 'brightness',
@@ -164,9 +164,9 @@ class ProcessingClass:
                             'gradient_threshold': 100
                         }
                     },
-                    'adaptive_glares_inpaint': {
+                    'adaptive_inpaint': {
                         'method_name': 'Адаптивное восстановление',
-                        'link': self.adaptive_glares_inpaint,
+                        'link': self.adaptive_inpaint,
                         'checked': False,
                         'params': {
                             'mask_mode': 'brightness',
@@ -370,17 +370,29 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ ИЗОБРАЖЕНИЙ С БЛИКАМИ
     # ================================================================================
 
-    def glares_inpaint(
+    # def simple_inpaint(
+    #     self,
+    #     image, 
+    #     color_space_mask='gray', 
+    #     color_space='rgb', 
+    #     threshold=200, 
+    #     inpaint_radius=3, 
+    #     flags='inpaint_ns', #cv2.INPAINT_NS,
+    #     mask_mode='brightness',
+    #     gradient_method='sobel',
+    #     gradient_threshold=50,
+    # ):
+    def simple_inpaint(
         self,
         image, 
-        color_space_mask='gray', 
-        color_space='rgb', 
-        threshold=200, 
-        inpaint_radius=3, 
-        flags='inpaint_ns', #cv2.INPAINT_NS,
-        mask_mode='brightness',
-        gradient_method='sobel',
-        gradient_threshold=50,
+        color_space_mask, 
+        color_space, 
+        threshold, 
+        inpaint_radius, 
+        flags,
+        mask_mode,
+        gradient_method=None,
+        gradient_threshold=None,
     ):
         """
         Исправляет блики на изображении с использованием маски на основе яркости, градиента или их комбинации.
@@ -484,19 +496,33 @@ class ProcessingClass:
 
         return inpaint_image
     
-    def adaptive_glares_inpaint(
+    # def adaptive_inpaint(
+    #     self,
+    #     image, 
+    #     color_space_mask='gray', 
+    #     color_space='rgb', 
+    #     adaptive_method='gaussian', #cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    #     block_size=11, 
+    #     C=2, 
+    #     inpaint_radius=3, 
+    #     flags='inpaint_ns', #cv2.INPAINT_NS,
+    #     mask_mode='brightness',
+    #     gradient_threshold=50,
+    #     gradient_method='sobel'
+    # ):
+    def adaptive_inpaint(
         self,
         image, 
-        color_space_mask='gray', 
-        color_space='rgb', 
-        adaptive_method='gaussian', #cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        block_size=11, 
-        C=2, 
-        inpaint_radius=3, 
-        flags='inpaint_ns', #cv2.INPAINT_NS,
-        mask_mode='brightness',
-        gradient_threshold=50,
-        gradient_method='sobel'
+        color_space_mask, 
+        color_space, 
+        adaptive_method,
+        block_size, 
+        C, 
+        inpaint_radius, 
+        flags,
+        mask_mode,
+        gradient_threshold=None,
+        gradient_method=None
     ):
         """
         Адаптивно исправляет блики на изображении с использованием маски на основе яркости, градиента или их комбинации.
@@ -615,7 +641,7 @@ class ProcessingClass:
     # ФУНКЦИИ ДЛЯ ИСПРАВЛЕНИЯ ИЗОБРАЖЕНИЙ С ШУМАМИ
     # ================================================================================
 
-    def adaptive_median_filter(self, image, estimate_noise='gaussian', sigma=3):
+    def adaptive_median_filter(self, image, estimate_noise, sigma=None):
         """
         Фильтр медианного значения с модификациями: сначала оценивается уровень шума выбранным способом,
         в зависимости от него выбирается размер ядра.
@@ -637,7 +663,7 @@ class ProcessingClass:
         median_image = cv2.medianBlur(image, kernel_size)
         return median_image
     
-    def adaptive_average_filter(self, image, estimate_noise, sigma=3):
+    def adaptive_average_filter(self, image, estimate_noise, sigma=None):
         """
         Фильтр среднего значения с модификациями: сначала оценивается уровень шума выбранным способом,
         в зависимости от него выбирается размер ядра.
@@ -658,7 +684,7 @@ class ProcessingClass:
         average_image = cv2.filter2D(image, -1, kernel)
         return average_image
     
-    def adaptive_gaussian_filter(self, image, estimate_noise='gaussian', sigma=3):
+    def adaptive_gaussian_filter(self, image, estimate_noise, sigma=None):
         """
         Фильтр гаусса с модификациями: сначала оценивается уровень шума выбранным способом,
         в зависимости от него выбирается размер ядра.
@@ -758,15 +784,15 @@ class ProcessingClass:
         return True
 
 
-    def process_image(self, image, processing_method, output_path=None, *args, **kwargs):
-        """
-        Обработка изображения.
-        """
-        # применение нужного метода
-        processed_image = processing_method(image, *args, **kwargs)
-        # если нужно, сохраняем обработанное изображение
-        if output_path: cv2.imwrite(output_path, processed_image)
-        return processed_image
+    # def process_image(self, image, processing_method, output_path=None, *args, **kwargs):
+    #     """
+    #     Обработка изображения.
+    #     """
+    #     # применение нужного метода
+    #     processed_image = processing_method(image, *args, **kwargs)
+    #     # если нужно, сохраняем обработанное изображение
+    #     if output_path: cv2.imwrite(output_path, processed_image)
+    #     return processed_image
 
     def determine_class(self, img):
         """
@@ -942,7 +968,7 @@ class ProcessingClass:
         
         return (processed_image, results)
     
-    def recovery_image(self, processing_mode, defect_mode, methods=None):
+    def recovery_image(self, processing_mode, defect_mode):
         """
         Восстановление изображения.
         """
@@ -965,7 +991,7 @@ class ProcessingClass:
         except:
             return None, None
         
-    def recovery_video(self, processing_mode, defect_mode, methods=None):
+    def recovery_video(self, processing_mode, defect_mode):
         """
         Восстановление видео.
         """
@@ -1050,7 +1076,7 @@ class ProcessingClass:
         except Exception as e:
             return None, None
     
-    def recovery_dataset(self, processing_mode, defect_mode, methods=None):
+    def recovery_dataset(self, processing_mode, defect_mode):
         """
         Восстановление датасета.
         """
@@ -1181,7 +1207,7 @@ class ProcessingClass:
         return result_image
     
     def detect_image(self, detect_type, confidence_threshold=0.55):
-        """\
+        """
         Нахождение объектов на изображении.
         detect_type - тип изображения (модели): исходный или обработанный (raw, best).
         """
