@@ -686,9 +686,10 @@ class MainScreen(QMainWindow):
                 # обновляем состояние кнопок
                 self.update_buttons_state()
             except Exception as e:
+                print(e)
                 self.file_path = None
                 self.show_errors(
-                    "Ошибка при загрузке файла", 
+                    "Ошибка при загрузке", 
                     self.file_layout
                 )
 
@@ -703,7 +704,7 @@ class MainScreen(QMainWindow):
             if processing_type == "Обработка изображения":
                 self.display_image(file_path=file_path, close=close, side=side)
             elif processing_type == "Обработка датасета":
-                self.display_dataset(file_path=file_path, close=close, side=side)
+                self.display_dataset(close=close, side=side)
             elif processing_type == "Обработка видео":
                 self.display_video(file_path=file_path, close=close, side=side)
 
@@ -877,6 +878,12 @@ class MainScreen(QMainWindow):
                     if hasattr(self, attr):
                         getattr(self, attr).deleteLater()
                         delattr(self, attr)
+                    # if hasattr(self, attr):
+                    #     widget = getattr(self, attr)
+                    #     if hasattr(widget, 'resizeEvent'):
+                    #         widget.resizeEvent = None
+                    #     widget.deleteLater()
+                    #     delattr(self, attr)
 
                 # очищаем layout (без удаления самого layout)
                 if hasattr(self, 'file_layout'):
@@ -900,6 +907,12 @@ class MainScreen(QMainWindow):
                     if hasattr(self, attr):
                         getattr(self, attr).deleteLater()
                         delattr(self, attr)
+                    # if hasattr(self, attr):
+                    #     widget = getattr(self, attr)
+                    #     if hasattr(widget, 'resizeEvent'):
+                    #         widget.resizeEvent = None
+                    #     widget.deleteLater()
+                    #     delattr(self, attr)
 
                 if hasattr(self, 'result_layout'):
                     while self.result_layout.count():
@@ -1867,6 +1880,15 @@ class MainScreen(QMainWindow):
 
 
     def processing(self):
+        # удаляем путь к размеченному исходному, если он есть
+        self.detected_path = None
+        # блокируем кнопку скачивания размеченного файла
+        self.download_detect_button.setEnabled(False)
+        # очищаем левую сторону, но сохраняем file_path
+        self.delete_files_widgets('left')
+        # загружаем исходное изображение снова
+        self.update_display(file_path=self.file_path, close=True, side='left')
+
         # очищаем правую сторону
         self.clear_right_side()
         # добавляем заголовок и область под результат обработки
@@ -1877,7 +1899,6 @@ class MainScreen(QMainWindow):
 
         # блокируем кнопку закрытия
         self.left_close_button.setEnabled(False)
-
         # блокируем кнопку исправления дефектов
         self.process_button.setEnabled(False)
 
@@ -2012,7 +2033,7 @@ class MainScreen(QMainWindow):
             elif self.file_type.currentText() == 'Обработка видео':
                 self.display_video(file_path=self.detected_path, close=True, side='left')
             elif self.file_type.currentText() == 'Обработка датасета':
-                self.display_dataset(file_path=self.detected_path, close=True, side='left')
+                self.display_dataset(close=True, side='left')
         
         # отображаем обработанный размеченный файл справа
         if self.detected_processed_path and os.path.exists(self.detected_processed_path):
@@ -2021,7 +2042,7 @@ class MainScreen(QMainWindow):
             elif self.file_type.currentText() == 'Обработка видео':
                 self.display_video(file_path=self.detected_processed_path, close=False, side='right')
             elif self.file_type.currentText() == 'Обработка датасета':
-                self.display_dataset(file_path=self.detected_processed_path, close=False, side='right')
+                self.display_dataset(close=False, side='right')
         
         # обновляем состояние кнопок
         self.update_buttons_state()
