@@ -45,12 +45,13 @@ class PreviewWindowDataset(QMainWindow):
     def init_ui(self):
         """Инициализация интерфейса"""
         self.setWindowTitle("Просмотр датасета")
-        self.resize(800, 600)
+        self.resize(800, 650)
         
         # Главный виджет и layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
         # Виджет для миниатюр
         self.thumbnails_widget = QWidget()
