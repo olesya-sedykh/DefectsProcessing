@@ -1878,6 +1878,9 @@ class MainScreen(QMainWindow):
         # блокируем кнопку закрытия
         self.left_close_button.setEnabled(False)
 
+        # блокируем кнопку исправления дефектов
+        self.process_button.setEnabled(False)
+
         # создаем и настраиваем спиннер
         self.show_processing(
             side='right', 
@@ -1918,6 +1921,7 @@ class MainScreen(QMainWindow):
             self.update_results_table()
             self.update_buttons_state()
             self.left_close_button.setEnabled(True)
+            self.process_button.setEnabled(True)
 
     def on_processing_error(self):
         """
@@ -1933,6 +1937,7 @@ class MainScreen(QMainWindow):
         )
 
         self.left_close_button.setEnabled(True)
+        self.process_button.setEnabled(True)
 
     
     # =========================================================================
@@ -1957,6 +1962,10 @@ class MainScreen(QMainWindow):
             message='Распознавание объектов...', 
             show=True
         )
+
+        # блокируем кнопки
+        self.detect_button.setEnabled(False)
+        self.process_button.setEnabled(False)
         
         # подготавливаем настройки для распознавателя
         settings = {
@@ -1985,6 +1994,10 @@ class MainScreen(QMainWindow):
         # получаем результаты
         self.detected_path = detected_path
         self.detected_processed_path = detected_processed_path
+
+        # разблокируем кнопки
+        self.detect_button.setEnabled(True)
+        self.process_button.setEnabled(True)
 
         # очищаем области отображения файлов
         if hasattr(self, 'file_layout'):
@@ -2033,3 +2046,7 @@ class MainScreen(QMainWindow):
             text="Ошибка в процессе распознавания объектов",
             parent_layout=self.result_layout
         )
+
+        # разблокируем кнопки
+        self.detect_button.setEnabled(True)
+        self.process_button.setEnabled(True)
