@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QTableWidget, QTableWidgetItem, 
     QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
     QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget,
-    QMessageBox, QStyle, QScrollArea
+    QMessageBox, QStyle, QScrollArea, QToolButton
 )
 from PyQt5.QtGui import (
     QPalette, QColor, QFont, QIntValidator, 
@@ -32,6 +32,15 @@ class PreviewWindowDataset(QMainWindow):
         
         self.init_ui()
         
+    def keyPressEvent(self, event):
+        """Обработка нажатий клавиш для листания изображений"""
+        if self.fullscreen_viewer and self.fullscreen_viewer.isVisible():
+            # Если открыто полноэкранное окно, передаем управление ему
+            self.fullscreen_viewer.keyPressEvent(event)
+        else:
+            # Листание миниатюр (если нужно)
+            super().keyPressEvent(event)
+    
     def get_image_files(self):
         """
         Получает список изображений в датасете.
@@ -123,75 +132,98 @@ class ImageViewerWindow(QMainWindow):
         
         self.init_ui()
         self.load_image()
+        self.setFocusPolicy(Qt.StrongFocus)
         
     def init_ui(self):
-        """Инициализация интерфейса"""
+        """Инициализация интерфейса с простыми стрелочными кнопками"""
         self.setWindowTitle("Просмотр изображения")
-        self.resize(800, 600)
+        self.original_size = QSize(800, 600)
+        self.resize(self.original_size)
         
         # Главный виджет
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Layout
-        layout = QVBoxLayout(central_widget)
+        # Основной layout
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        # Label для изображения
+        # Кнопка "Назад" (слева)
+        self.prev_button = QToolButton()
+        self.prev_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+        self.prev_button.setIconSize(QSize(24, 24))
+        self.prev_button.clicked.connect(self.show_prev_image)
+        main_layout.addWidget(self.prev_button, alignment=Qt.AlignVCenter)
+        
+        # Область изображения (центр)
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.image_label)
+        self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        main_layout.addWidget(self.image_label, stretch=1)
         
-        # Кнопки навигации
-        nav_widget = QWidget()
-        nav_layout = QHBoxLayout(nav_widget)
-        
-        self.prev_button = QPushButton("← Назад")
-        self.prev_button.clicked.connect(self.show_prev_image)
-        nav_layout.addWidget(self.prev_button)
-        
-        self.next_button = QPushButton("Вперед →")
+        # Кнопка "Вперед" (справа)
+        self.next_button = QToolButton()
+        self.next_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        self.next_button.setIconSize(QSize(24, 24))
         self.next_button.clicked.connect(self.show_next_image)
-        nav_layout.addWidget(self.next_button)
+        main_layout.addWidget(self.next_button, alignment=Qt.AlignVCenter)
         
-        layout.addWidget(nav_widget)
-        
+        # Простая стилизация кнопок
+        self.setStyleSheet("""
+            QToolButton {
+                border: none;
+                padding: 20px;
+                background: transparent;
+            }
+            QToolButton:hover {
+                background: rgba(0, 0, 0, 20);
+            }
+        """)
+    
     def load_image(self):
         """Загружает текущее изображение"""
         if 0 <= self.current_index < len(self.image_files):
             pixmap = QPixmap(self.image_files[self.current_index])
             if not pixmap.isNull():
-                self.image_label.setPixmap(pixmap.scaled(
-                    self.image_label.size(), 
-                    Qt.KeepAspectRatio, 
+                # Масштабируем под доступный размер QLabel
+                scaled_pixmap = pixmap.scaled(
+                    self.image_label.size(),
+                    Qt.KeepAspectRatio,
                     Qt.SmoothTransformation
-                ))
-                
-            # Обновляем состояние кнопок
+                )
+                self.image_label.setPixmap(scaled_pixmap)
+            
             self.prev_button.setEnabled(self.current_index > 0)
             self.next_button.setEnabled(self.current_index < len(self.image_files) - 1)
     
     def show_prev_image(self):
-        """Показывает предыдущее изображение"""
         if self.current_index > 0:
             self.current_index -= 1
             self.load_image()
     
     def show_next_image(self):
-        """Показывает следующее изображение"""
         if self.current_index < len(self.image_files) - 1:
             self.current_index += 1
             self.load_image()
     
     def keyPressEvent(self, event):
-        """Обработка нажатий клавиш"""
+        """Обработка клавиш стрелок"""
         if event.key() == Qt.Key_Left:
             self.show_prev_image()
         elif event.key() == Qt.Key_Right:
             self.show_next_image()
+        elif event.key() == Qt.Key_Escape:
+            self.close()
         else:
             super().keyPressEvent(event)
     
+    def showEvent(self, event):
+        """Устанавливаем фокус при показе окна"""
+        self.setFocus()
+        super().showEvent(event)
+    
     def resizeEvent(self, event):
         """Обработчик изменения размера окна"""
-        self.load_image()
         super().resizeEvent(event)
+        self.load_image()
