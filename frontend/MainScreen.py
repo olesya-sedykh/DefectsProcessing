@@ -22,6 +22,7 @@ import cv2
 from pathlib import Path
 from functools import partial
 import shutil
+from PyQt5 import sip
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
@@ -543,7 +544,8 @@ class MainScreen(QMainWindow):
                 self.download_detect_button.setText("Скачать размеченный датасет")
 
     def set_load_button_text(self):
-        if hasattr(self, 'file_type'):
+        if (hasattr(self, 'file_type') and hasattr(self, 'load_button') and 
+        self.load_button is not None and not sip.isdeleted(self.load_button)):
             if self.file_type.currentText() == 'Обработка датасета':
                 self.load_button.setText('Загрузить\nпапку')
             else:

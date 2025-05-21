@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QPushButton, 
-                            QSizePolicy, QHBoxLayout)
+                            QSizePolicy, QDesktopWidget)
 from PyQt5.QtGui import QImage, QPixmap, QCursor
 from PyQt5.QtCore import Qt, QTimer
 import cv2
@@ -18,7 +18,18 @@ class PreviewWindowVideo(QWidget):
         
         self.setup_ui()
         self.setMouseTracking(True)
+
+        self.center()
         
+    def center(self) -> None:
+        """
+        Устанавливает окно по центру экрана.
+        """
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+    
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
