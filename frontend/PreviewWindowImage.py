@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QDesktopWidget
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QDesktopWidget, QSizePolicy
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 
 class PreviewWindowImage(QWidget):
     def __init__(self, image_path):
@@ -8,19 +8,43 @@ class PreviewWindowImage(QWidget):
         self.setWindowTitle("Просмотр изображения")
         self.setGeometry(100, 100, 800, 600)
         self.center()
-
-        # Загружаем изображение
+        
+        self.image_path = image_path
+        self.original_pixmap = QPixmap(image_path)
+        
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignCenter)
-        pixmap = QPixmap(image_path)
-        self.image_label.setPixmap(pixmap.scaled(
-            self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        ))
-
-        # Layout для окна просмотра
+        self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.image_label.setMinimumSize(1, 1)
+        
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.image_label)
-        self.setLayout(layout)
+        
+        self.update_image()
+
+    def update_image(self):
+        """
+        Обновляет изображение с учетом текущего размера окна.
+        """
+        if not self.original_pixmap.isNull():
+            # получаем доступный размер (с небольшим отступом)
+            available_size = self.image_label.size() - QSize(10, 10)
+            
+            # масштабируем с сохранением пропорций
+            scaled_pixmap = self.original_pixmap.scaled(
+                available_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.image_label.setPixmap(scaled_pixmap)
+
+    def resizeEvent(self, event):
+        """
+        Обработчик изменения размера окна.
+        """
+        super().resizeEvent(event)
+        self.update_image()
 
     def center(self) -> None:
         """

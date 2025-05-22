@@ -162,7 +162,7 @@ class ImageViewerWindow(QMainWindow):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.image_label.setMinimumSize(1, 1)  # Критически важно!
+        self.image_label.setMinimumSize(1, 1)
         main_layout.addWidget(self.image_label, stretch=1)
         
         # кнопка "Вперед"
