@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (
     QLineEdit, QComboBox, QPushButton, QDialog, QFormLayout,
     QSpinBox, QDoubleSpinBox, QScrollArea
 )
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 
 class ParameterDialog(QDialog):
     def __init__(self, method_name, parameters_config, params_mapping, allowed_params_values, editable=False, parent=None):
@@ -17,13 +17,12 @@ class ParameterDialog(QDialog):
         self.setWindowTitle(f"Параметры: {method_name}")
         self.setModal(True)
         self.setMinimumWidth(350)
+
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         
         # приводим параметры к виду 'param = value'
         self.original_parameters = {name: config['value'] for name, config in parameters_config.items()}
         self.current_parameters = {name: config['value'] for name, config in parameters_config.items()}
-        # глубокое копирование параметров
-        # self.original_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
-        # self.current_parameters = {k: v[:] if isinstance(v, list) else v for k, v in parameters.items()}
         
         # начальная инициализация
         self.init_ui()
@@ -50,8 +49,6 @@ class ParameterDialog(QDialog):
                 'widget_type': 'int'
             }
         }
-
-        # self.setup_dependencies()
         
     def init_ui(self):
         """
@@ -110,7 +107,6 @@ class ParameterDialog(QDialog):
 
                 # заменяем русские названия на английские
                 current_value = next(k for k, v in self.params_mapping.items() if v == current_value)
-                # print(f"Проверка зависимости: {dependent} <- {config['source']} = {current_value} (должно быть в {config['condition']})")
                 
                 # определяем по условию, должен ли зависимый виджет отображаться
                 should_show = current_value in config['condition']
@@ -134,25 +130,11 @@ class ParameterDialog(QDialog):
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 0, 0, 0)
 
-        # берется значение по ключу name, а если его нет, то берется value
-        # original_value = self.original_parameters.get(name, value)
-        
-        # if isinstance(original_value, str):
-        #     widget = QComboBox()
-        #     items = self.allowed_params_values[name]
-        #     widget.addItems(items)
-        #     widget.setCurrentText(str(original_value))
-        #     widget_type = 'combo'
-            
-        #     if name in ['estimate_noise', 'mask_mode', 'wavelet_estimate_noise']:
-        #         widget.currentTextChanged.connect(self.force_update_dependencies)
-
         if widget_type == 'combo':
             widget = QComboBox()
             items = self.allowed_params_values[name]
             translated_items = [self.params_mapping[item] for item in items]
             widget.addItems(translated_items)
-            # widget.setCurrentText(str(self.params_mapping[original_value]))
             widget.setCurrentText(self.params_mapping.get(str(value), str(value)))
 
             for item in config.get('options', []):
@@ -234,7 +216,6 @@ class ParameterDialog(QDialog):
         """
         Сохранение параметров и закрытие.
         """
-        # self.current_parameters = self.get_parameters()
         current_config = self.get_parameters()
         self.current_parameters = {name: config['value'] for name, config in current_config.items()}
         self.accept()
@@ -264,22 +245,3 @@ class ParameterDialog(QDialog):
                 params_config[name] = param_config
         
         return params_config
-    
-    # def get_parameters(self):
-    #     """
-    #     Получение текущих значений параметров.
-    #     """
-    #     params = {}
-    #     for name, (widget, widget_type) in self.widgets.items():
-    #         if name in self.original_parameters:
-    #             if widget_type == 'combo':
-    #                 params[name] = widget.currentData()
-    #             elif widget_type == 'int':
-    #                 params[name] = int(widget.value())
-    #             elif widget_type == 'float':
-    #                 params[name] = float(widget.value())
-    #             elif widget_type == 'tuple':
-    #                 params[name] = (widget[0].value(), widget[1].value())
-    #             else:
-    #                 params[name] = widget.text()
-    #     return params
