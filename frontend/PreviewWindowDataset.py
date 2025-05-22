@@ -188,7 +188,8 @@ class ImageViewerWindow(QMainWindow):
             if not pixmap.isNull():
                 # Масштабируем под доступный размер QLabel
                 scaled_pixmap = pixmap.scaled(
-                    self.image_label.size(),
+                    # self.image_label.size(),
+                    self.original_size,
                     Qt.KeepAspectRatio,
                     Qt.SmoothTransformation
                 )

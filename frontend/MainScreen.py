@@ -1742,6 +1742,29 @@ class MainScreen(QMainWindow):
             # сохраняем обновленные параметры
             methods_dict[defect_key]['methods'][checked_method_key]['params'] = dialog.get_parameters()
 
+    def set_table_elements_enabled(self, enabled):
+        """
+        Блокирует или разблокирует элементы в таблице методов.
+        """
+        for row in range(self.methods_table.rowCount()):
+            # получаем контейнер с элементами
+            container = self.methods_table.cellWidget(row, 1)
+            if container:
+                # блокируем/разблокируем выпадающий список (для ручного режима)
+                combo = container.findChild(QComboBox)
+                if combo:
+                    combo.setEnabled(enabled)
+                
+                # блокируем/разблокируем кнопку-шестеренку
+                gear_btn = container.findChild(QPushButton)
+                if gear_btn:
+                    gear_btn.setEnabled(enabled)
+                    # обновляем стиль кнопки
+                    if enabled:
+                        gear_btn.setStyleSheet(self.gear_buttons_style['normal'])
+                    else:
+                        gear_btn.setStyleSheet(self.gear_buttons_style['disabled'])
+
     
     def update_results_table(self):
         """
@@ -1903,6 +1926,11 @@ class MainScreen(QMainWindow):
         self.left_close_button.setEnabled(False)
         # блокируем кнопку исправления дефектов
         self.process_button.setEnabled(False)
+        # блокируем все выпадающие списки и выбор
+        self.file_type.setEnabled(False)
+        self.process_type.setEnabled(False)
+        self.defects_processing_type.setEnabled(False)
+        self.set_table_elements_enabled(False)
 
         # создаем и настраиваем спиннер
         self.show_processing(
@@ -1945,6 +1973,10 @@ class MainScreen(QMainWindow):
             self.update_buttons_state()
             self.left_close_button.setEnabled(True)
             self.process_button.setEnabled(True)
+            self.file_type.setEnabled(True)
+            self.process_type.setEnabled(True)
+            self.defects_processing_type.setEnabled(True)
+            self.set_table_elements_enabled(True)
 
     def on_processing_error(self):
         """
@@ -1986,9 +2018,10 @@ class MainScreen(QMainWindow):
             show=True
         )
 
-        # блокируем кнопки
+        # блокируем кнопки и выбор файла
         self.detect_button.setEnabled(False)
         self.process_button.setEnabled(False)
+        self.file_type.setEnabled(False)
         
         # подготавливаем настройки для распознавателя
         settings = {
@@ -2021,6 +2054,7 @@ class MainScreen(QMainWindow):
         # разблокируем кнопки
         self.detect_button.setEnabled(True)
         self.process_button.setEnabled(True)
+        self.file_type.setEnabled(True)
 
         # очищаем области отображения файлов
         if hasattr(self, 'file_layout'):
