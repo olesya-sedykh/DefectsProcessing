@@ -6,7 +6,7 @@ class PreviewWindowImage(QWidget):
     def __init__(self, image_path):
         super().__init__()
         self.setWindowTitle("Просмотр изображения")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(800, 600)
         self.center()
         
         self.image_path = image_path

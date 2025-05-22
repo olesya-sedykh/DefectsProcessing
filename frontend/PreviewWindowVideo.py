@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QPushButton, 
                             QSizePolicy, QDesktopWidget)
 from PyQt5.QtGui import QImage, QPixmap, QCursor
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSize
 import cv2
 import os
 
@@ -9,22 +9,20 @@ class PreviewWindowVideo(QWidget):
     def __init__(self, video_path):
         super().__init__()
         self.setWindowTitle("Просмотр видео")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(800, 600)
         self.video_path = video_path
         self.cap = None
         self.is_playing = False
-        self.video_width = 0  # Переименовываем переменные
+        self.video_width = 0
         self.video_height = 0
+        self.current_frame = None
+        self.original_pixmap = None
         
         self.setup_ui()
         self.setMouseTracking(True)
-
         self.center()
         
     def center(self) -> None:
-        """
-        Устанавливает окно по центру экрана.
-        """
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
@@ -37,7 +35,8 @@ class PreviewWindowVideo(QWidget):
         self.video_label = QLabel(self)
         self.video_label.setAlignment(Qt.AlignCenter)
         self.video_label.setStyleSheet("background-color: black;")
-        self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.video_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # Изменено на Ignored
+        self.video_label.setMinimumSize(1, 1)
         self.video_label.setMouseTracking(True)
         
         self.play_button = QPushButton("▶", self)
@@ -72,26 +71,39 @@ class PreviewWindowVideo(QWidget):
             return
             
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
-        self.video_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # Используем новое имя
+        self.video_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.video_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.toggle_play()
         
     def update_frame(self):
         ret, frame = self.cap.read()
         if ret:
+            self.current_frame = frame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w, ch = frame.shape
             q_img = QImage(frame.data, w, h, ch * w, QImage.Format_RGB888)
-            self.video_label.setPixmap(
-                QPixmap.fromImage(q_img).scaled(
-                    self.video_label.size(), 
-                    Qt.KeepAspectRatio, 
-                    Qt.SmoothTransformation
-                )
-            )
+            self.original_pixmap = QPixmap.fromImage(q_img)  # сохраняем оригинальное изображение
+            self.scale_frame()
         else:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+    
+    def scale_frame(self):
+        """
+        Масштабирует кадр под текущий размер окна.
+        """
+        if self.original_pixmap and not self.original_pixmap.isNull():
+            # вычисляем доступный размер с небольшим отступом
+            available_size = self.video_label.size() - QSize(10, 10)
             
+            # масштабируем с сохранением пропорций
+            scaled_pixmap = self.original_pixmap.scaled(
+                available_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.video_label.setPixmap(scaled_pixmap)
+            self.video_label.setMinimumSize(1, 1)  # Сбрасываем минимальный размер
+    
     def toggle_play(self):
         if self.is_playing:
             self.timer.stop()
@@ -117,12 +129,14 @@ class PreviewWindowVideo(QWidget):
             self.play_button.hide()
             
     def resizeEvent(self, event):
-        self.update_button_positions()
         super().resizeEvent(event)
+
+        # обновляем позиции кнопок
+        self.update_button_positions()
+        # масштабируем при каждом изменении размера
+        self.scale_frame()  
         
     def update_button_positions(self):
-        """Исправленный метод с правильными именами переменных"""
-        # Используем self.width() и self.height() - методы QWidget
         self.play_button.move(
             (self.width() - self.play_button.width()) // 2,
             (self.height() - self.play_button.height()) // 2
