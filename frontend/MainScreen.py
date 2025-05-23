@@ -467,74 +467,11 @@ class MainScreen(QMainWindow):
         self.result_widget.setMaximumHeight(self.file_widget.height())
         # self.result_widget.updateGeometry()
 
-        # if hasattr(self, 'result_widget') and self.result_widget and not sip.isdeleted(self.result_widget) \
-        #     and hasattr(self, 'file_widget') and self.file_widget and not sip.isdeleted(self.file_widget):
-        #     # получаем фактическую высоту file_widget
-        #     left_height = self.file_widget.height()
-        #     # left_height = self.file_widget.sizeHint().height() or self.file_widget.height()
-        #     # устанавливаем рекомендуемую высоту, а не фиксированную
-        #     self.result_widget.setMinimumHeight(left_height)
-        #     self.result_widget.setMaximumHeight(left_height)
-        #     print('LEFT HEIGHT', left_height)
-        #     # устанавливаем фиксированную высоту для result_widget
-        #     self.result_widget.setFixedHeight(left_height)
-        #     self.right_layout.activate()
-        #     # обновляем геометрию
-        #     self.result_widget.updateGeometry()
-        #     self.file_widget.updateGeometry()
-
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-    #     self.sync_widgets_heights()
-
-    # def resizeEvent(self, event):
-    #     print(f"\n[ResizeEvent] Main window size: {self.size()}")
-    #     print(f"[ResizeEvent] File widget size: {self.file_widget.size()}")
-    #     if hasattr(self, 'result_widget') and self.result_widget and not sip.isdeleted(self.result_widget):
-    #         print(f"[ResizeEvent] Result widget size: {self.result_widget.size()}")
-    #     else: print('NO RESULT')
-    #     super().resizeEvent(event)
-    #     QTimer.singleShot(50, self.debug_sizes)  # Дополнительная проверка после обработки
-
-    # def debug_sizes(self):
-    #     print("\n[DebugSizes] After resize:")
-    #     print(f"Main window: {self.size()}")
-    #     print(f"File widget: {self.file_widget.size()} (policy: {self.file_widget.sizePolicy().verticalPolicy()})")
-    #     if hasattr(self, 'result_widget') and self.result_widget and not sip.isdeleted(self.result_widget):
-    #         print(f"Result widget: {self.result_widget.size()} (policy: {self.result_widget.sizePolicy().verticalPolicy()})")
-    #     else: print('NO RESULT')
-    #     if hasattr(self, 'left_show_label') and self.left_show_label and not sip.isdeleted(self.left_show_label):
-    #         print(f"Left show label: {self.left_show_label.size() if hasattr(self, 'left_show_label') else 'N/A'}")
-    #     else: print('NO Left show label')
-    #     if hasattr(self, 'right_show_label') and self.right_show_label and not sip.isdeleted(self.right_show_label):
-    #         print(f"Right show label: {self.right_show_label.size() if hasattr(self, 'right_show_label') else 'N/A'}")
-    #     else: print('NO Right show label')    
-
     def eventFilter(self, obj, event):
         if hasattr(self, 'result_widget') and self.result_widget and not sip.isdeleted(self.result_widget):
             if obj == self.file_widget and event.type() == QEvent.Resize:
                 self.sync_widgets_heights()
         return super().eventFilter(obj, event)
-
-    # def eventFilter(self, obj, event):
-    #     if obj == self.file_widget and event.type() == QEvent.Resize:
-    #         QTimer.singleShot(50, self.sync_widgets_heights)
-    #     return super().eventFilter(obj, event)
-
-    # def eventFilter(self, obj, event):
-    #     if event.type() == QEvent.Resize:
-    #         print(f"\n[EventFilter] Resize detected for: {obj.objectName() if obj.objectName() else type(obj).__name__}")
-    #         print(f"New size: {obj.size()}")
-        
-    #     if obj == self.file_widget and event.type() == QEvent.Resize:
-    #         # QTimer.singleShot(50, self.debug_sizes)
-    #         # QTimer.singleShot(50, self.sync_widgets_heights)
-    #         QTimer.singleShot(100, lambda: [
-    #             self.sync_widgets_heights(),
-    #             QTimer.singleShot(50, self.debug_sizes)
-    #         ])
-        
-    #     return super().eventFilter(obj, event)
 
     def show_errors(self, text, parent_layout):
         """
