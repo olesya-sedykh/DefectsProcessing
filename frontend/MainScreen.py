@@ -24,7 +24,7 @@ from functools import partial
 import shutil
 from PyQt5 import sip
 
-import traceback
+# import traceback
 
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
@@ -518,10 +518,12 @@ class MainScreen(QMainWindow):
         Устанавливает список способов испраления дефектов 
         (добавляет опцию исправления самого частого дефекта для видео и датасета).
         """
+        item = self.defects_processing_type.findText("Исправить самый частый дефект")
         if self.file_type.currentText() != "Обработка изображения":
-            self.defects_processing_type.addItem("Исправить самый частый дефект")
+            if item == -1:
+                self.defects_processing_type.addItem("Исправить самый частый дефект")
         else:
-            item = self.defects_processing_type.findText("Исправить самый частый дефект")
+            # item = self.defects_processing_type.findText("Исправить самый частый дефект")
             self.defects_processing_type.removeItem(item)
     
     def set_download_buttons_text(self):
