@@ -1936,6 +1936,7 @@ class MainScreen(QMainWindow):
     def processing(self):
         # удаляем путь к размеченному исходному, если он есть
         self.detected_path = None
+        self.detected_processed_path = None
         # блокируем кнопку скачивания размеченного файла
         self.download_detect_button.setEnabled(False)
         # очищаем левую сторону, но сохраняем file_path

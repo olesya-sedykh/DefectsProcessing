@@ -9,7 +9,8 @@ class PreviewWindowVideo(QWidget):
     def __init__(self, video_path):
         super().__init__()
         self.setWindowTitle("Просмотр видео")
-        self.setGeometry(800, 600)
+        # self.setGeometry(800, 600)
+        self.resize(800, 600)
         self.video_path = video_path
         self.cap = None
         self.is_playing = False
