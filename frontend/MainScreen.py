@@ -24,6 +24,8 @@ from functools import partial
 import shutil
 from PyQt5 import sip
 
+import traceback
+
 os.environ["QT_MEDIA_BACKEND"] = "windowsmediafoundation"
 
 from frontend.PreviewWindowImage import PreviewWindowImage
@@ -832,108 +834,123 @@ class MainScreen(QMainWindow):
         # устанавливаем размер виджета для кнопок (подгоняет размер под содержимое)
         overlay_widget.adjustSize()
     
-    # def delete_files_widgets(self, side):
-    #     """
-    #     Удаляет виджеты из области отображения файлов.
-    #     """
-    #     if side == 'left':
-    #         layout = self.file_layout
-    #         # удаляем обработчик
-    #         if hasattr(self, 'left_show_label'):
-    #             self.left_show_label.resizeEvent = None
-    #         # очищаем ссылки на левые виджеты
-    #         for attr in ['left_show_label', 'left_show_container', 
-    #                     'left_overlay_widget', 'left_view_button',
-    #                     'left_close_button', 'left_play_button']:
-    #             if hasattr(self, attr):
-    #                 delattr(self, attr)
-    #     elif side == 'right':
-    #         layout = self.result_layout
-    #         # удаляем обработчик
-    #         if hasattr(self, 'right_show_label'):
-    #             self.right_show_label.resizeEvent = None
-    #         # очищаем ссылки на правые виджеты
-    #         for attr in ['right_show_label', 'right_show_container',
-    #                     'right_overlay_widget', 'right_view_button',
-    #                     'right_play_button']:
-    #             if hasattr(self, attr):
-    #                 delattr(self, attr)
-
-    #     if layout:
-    #         # удаляем все виджеты из layout
-    #         for i in reversed(range(layout.count())):
-    #             widget = layout.itemAt(i).widget()
-    #             if widget: 
-    #                 widget.deleteLater()
-
-    #         # удаляем ссылку на layout
-    #         del layout
-
     def delete_files_widgets(self, side):
         """
         Удаляет виджеты из области отображения файлов.
         """
         try:
             if side == 'left':
-                # сначала отключаем все сигналы и таймеры
-                if hasattr(self, 'left_video_timer') and self.left_video_timer:
-                    self.left_video_timer.stop()
-                    self.left_video_timer.deleteLater()
-                
-                if hasattr(self, 'left_cap') and self.left_cap:
-                    self.left_cap.release()
-
-                # затем очищаем виджеты
+                layout = self.file_layout
+                # удаляем обработчик
+                if hasattr(self, 'left_show_label'):
+                    self.left_show_label.resizeEvent = None
+                # очищаем ссылки на левые виджеты
                 for attr in ['left_show_label', 'left_show_container', 
                             'left_overlay_widget', 'left_view_button',
                             'left_close_button', 'left_play_button']:
                     if hasattr(self, attr):
-                        getattr(self, attr).deleteLater()
                         delattr(self, attr)
-                    # if hasattr(self, attr):
-                    #     widget = getattr(self, attr)
-                    #     if hasattr(widget, 'resizeEvent'):
-                    #         widget.resizeEvent = None
-                    #     widget.deleteLater()
-                    #     delattr(self, attr)
-
-                # очищаем layout (без удаления самого layout)
-                if hasattr(self, 'file_layout'):
-                    while self.file_layout.count():
-                        item = self.file_layout.takeAt(0)
-                        if item.widget():
-                            item.widget().deleteLater()
-
             elif side == 'right':
-                # аналогично для правой стороны
-                if hasattr(self, 'right_video_timer') and self.right_video_timer:
-                    self.right_video_timer.stop()
-                    self.right_video_timer.deleteLater()
-                
-                if hasattr(self, 'right_cap') and self.right_cap:
-                    self.right_cap.release()
-
+                if not hasattr(self, 'result_layout') or sip.isdeleted(self.result_layout):
+                    return
+                layout = self.result_layout
+                # удаляем обработчик
+                if hasattr(self, 'right_show_label'):
+                    self.right_show_label.resizeEvent = None
+                # очищаем ссылки на правые виджеты
                 for attr in ['right_show_label', 'right_show_container',
                             'right_overlay_widget', 'right_view_button',
                             'right_play_button']:
                     if hasattr(self, attr):
-                        getattr(self, attr).deleteLater()
                         delattr(self, attr)
-                    # if hasattr(self, attr):
-                    #     widget = getattr(self, attr)
-                    #     if hasattr(widget, 'resizeEvent'):
-                    #         widget.resizeEvent = None
-                    #     widget.deleteLater()
-                    #     delattr(self, attr)
 
-                if hasattr(self, 'result_layout'):
-                    while self.result_layout.count():
-                        item = self.result_layout.takeAt(0)
-                        if item.widget():
-                            item.widget().deleteLater()
+            if layout:
+                # удаляем все виджеты из layout
+                for i in reversed(range(layout.count())):
+                    widget = layout.itemAt(i).widget()
+                    if widget: 
+                        widget.deleteLater()
+
+                # удаляем ссылку на layout
+                del layout
+        except RuntimeError as e:
+            print(side)
+            print(f"Произошла ошибка в delete_files_widgets: {e}")
+
+    # def delete_files_widgets(self, side):
+    #     """
+    #     Удаляет виджеты из области отображения файлов.
+    #     """
+    #     try:
+    #         if side == 'left':
+    #             # сначала отключаем все сигналы и таймеры
+    #             if hasattr(self, 'left_video_timer') and self.left_video_timer:
+    #                 self.left_video_timer.stop()
+    #                 self.left_video_timer.deleteLater()
+                
+    #             if hasattr(self, 'left_cap') and self.left_cap:
+    #                 self.left_cap.release()
+
+    #             # затем очищаем виджеты
+    #             for attr in ['left_show_label', 'left_show_container', 
+    #                         'left_overlay_widget', 'left_view_button',
+    #                         'left_close_button', 'left_play_button']:
+    #                 if hasattr(self, attr):
+    #                     getattr(self, attr).deleteLater()
+    #                     delattr(self, attr)
+    #                 # if hasattr(self, attr):
+    #                 #     widget = getattr(self, attr)
+    #                 #     if hasattr(widget, 'resizeEvent'):
+    #                 #         widget.resizeEvent = None
+    #                 #     widget.deleteLater()
+    #                 #     delattr(self, attr)
+
+    #             # очищаем layout (без удаления самого layout)
+    #             if hasattr(self, 'file_layout'):
+    #                 while self.file_layout.count():
+    #                     item = self.file_layout.takeAt(0)
+    #                     if item.widget():
+    #                         item.widget().deleteLater()
+
+    #         elif side == 'right':
+    #             # аналогично для правой стороны
+    #             if hasattr(self, 'right_video_timer') and self.right_video_timer:
+    #                 self.right_video_timer.stop()
+    #                 self.right_video_timer.deleteLater()
+                
+    #             if hasattr(self, 'right_cap') and self.right_cap:
+    #                 self.right_cap.release()
+
+    #             if not hasattr(self, 'result_layout') or sip.isdeleted(self.result_layout):
+    #                 return
+                
+    #             if hasattr(self, 'result_layout'):
+    #                 while self.result_layout.count():
+    #                     item = self.result_layout.takeAt(0)
+    #                     if item.widget():
+    #                         item.widget().deleteLater()
+
+    #             for attr in ['right_show_label', 'right_show_container',
+    #                         'right_overlay_widget', 'right_view_button',
+    #                         'right_play_button']:
+    #                 if hasattr(self, attr):
+    #                     getattr(self, attr).deleteLater()
+    #                     delattr(self, attr)
+    #                 # if hasattr(self, attr):
+    #                 #     widget = getattr(self, attr)
+    #                 #     if hasattr(widget, 'resizeEvent'):
+    #                 #         widget.resizeEvent = None
+    #                 #     widget.deleteLater()
+    #                 #     delattr(self, attr)
         
-        except RuntimeError:
-            pass  # игнорируем ошибки уже удалённых объектов
+    #     except RuntimeError as e:
+    #         # print(side)
+    #         # print(f"Произошла ошибка в delete_files_widgets: {e}")
+    #         print("=" * 50)
+    #         print("ОШИБКА В delete_files_widgets:")
+    #         traceback.print_exc()
+    #         print("=" * 50)
+    #         pass  # игнорируем ошибки уже удалённых объектов
     
     def clear(self):
         """
@@ -1420,11 +1437,12 @@ class MainScreen(QMainWindow):
         """
         Очищает правую часть интерфейса.
         """
-        # удаляем все виджеты из right_layout
-        while self.right_layout.count():
-            item = self.right_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        if hasattr(self, 'result_layout'):
+            # удаляем все виджеты из right_layout
+            while self.right_layout.count():
+                item = self.right_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
 
         # удаляем ссылки на виджеты
         for attr in ['results_table', 'detect_button', 
