@@ -31,7 +31,7 @@ class ProcessingClass:
                 'defect_name': 'Размытие',
                 'methods': {
                     'unsharp_masking': {
-                        'method_name': 'Повышение резкости',
+                        'method_name': 'Фильтр Гаусса',
                         'link': self.unsharp_masking,
                         'checked': True,
                         'params': {
@@ -109,7 +109,7 @@ class ProcessingClass:
                         'params': None
                     },
                     'unsharp_masking': {
-                        'method_name': 'Повышение резкости',
+                        'method_name': 'Фильтр Гаусса',
                         'link': self.unsharp_masking,
                         'checked': True,
                         'params': {

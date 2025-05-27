@@ -18,7 +18,15 @@ class ParameterDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(350)
 
+        # убираем значок справки
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        # запрещаем менять размер окна
+        # self.setFixedSize(self.sizeHint())
+        # self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)
+        # self.setMinimumSize(self.size())
+        # self.setMaximumSize(self.size())
+
+        self._user_can_resize = False
         
         # приводим параметры к виду 'param = value'
         self.original_parameters = {name: config['value'] for name, config in parameters_config.items()}
@@ -50,6 +58,13 @@ class ParameterDialog(QDialog):
             }
         }
         
+    def resizeEvent(self, event):
+        if not self._user_can_resize:
+            # игнорируем пользовательский ресайз, оставляем только программный
+            self.resize(self.size())
+        else:
+            super().resizeEvent(event)
+    
     def init_ui(self):
         """
         Начальная инициализация.
@@ -88,6 +103,9 @@ class ParameterDialog(QDialog):
         # добавляем кнопки согласия и отмены
         if self.editable:
             self.add_control_buttons(main_layout)
+
+        # запрещаем менять размер окна
+        self.setFixedSize(self.sizeHint())
         
         # принудительное обновление после полной инициализации
         QTimer.singleShot(100, self.force_update_dependencies)
@@ -116,6 +134,8 @@ class ParameterDialog(QDialog):
         
         # автоматическое обновление размеров виджета в соответствии с содержимым
         self.content_widget.adjustSize()
+        # фиксируем размер окна
+        self.resize(self.sizeHint())
     
     def create_parameter_row(self, name):
         """
