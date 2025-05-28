@@ -302,6 +302,7 @@ class MainScreen(QMainWindow):
         self.file_type.currentTextChanged.connect(self.set_download_buttons_text)
         self.file_type.currentTextChanged.connect(self.set_defects_types)
         self.file_type.currentTextChanged.connect(self.set_load_button_text)
+        self.file_type.currentTextChanged.connect(self.clear)
         left_layout.addWidget(self.file_type)
         # self.set_download_buttons_text()
 
@@ -971,24 +972,28 @@ class MainScreen(QMainWindow):
         #     del self.processor
 
         # останавливаем таймер, если он существует
-        if hasattr(self, 'left_video_timer') and self.left_video_timer:
-            self.left_video_timer.stop()
-            del self.left_video_timer
+        # if hasattr(self, 'left_video_timer') and self.left_video_timer:
+        #     self.left_video_timer.stop()
+        #     del self.left_video_timer
         
-        # освобождаем ресурсы VideoCapture, если есть
-        if hasattr(self, 'left_cap') and self.left_cap:
-            self.left_cap.release()
-            del self.left_cap
+        # # освобождаем ресурсы VideoCapture, если есть
+        # if hasattr(self, 'left_cap') and self.left_cap:
+        #     self.left_cap.release()
+        #     del self.left_cap
         
-        # останавливаем таймер, если он существует
-        if hasattr(self, 'right_video_timer') and self.right_video_timer:
-            self.right_video_timer.stop()
-            del self.right_video_timer
+        # # останавливаем таймер, если он существует
+        # if hasattr(self, 'right_video_timer') and self.right_video_timer:
+        #     self.right_video_timer.stop()
+        #     del self.right_video_timer
         
-        # освобождаем ресурсы VideoCapture, если есть
-        if hasattr(self, 'right_cap') and self.right_cap:
-            self.right_cap.release()
-            del self.right_cap
+        # # освобождаем ресурсы VideoCapture, если есть
+        # if hasattr(self, 'right_cap') and self.right_cap:
+        #     self.right_cap.release()
+        #     del self.right_cap
+
+        # останавливаем видео и освобождаем ресурсы
+        self.stop_video('left')
+        self.stop_video('right')
 
         # удаляем виджеты из области отображения файлов
         if hasattr(self, 'file_layout'):
@@ -1054,6 +1059,7 @@ class MainScreen(QMainWindow):
         """
         Обновляет отображаемую часть изображения или кадра (среднюю часть).
         """        
+        # print('SIDE', side)
         if side == 'left': show_label = self.left_show_label
         elif side == 'right': show_label = self.right_show_label
         
@@ -1359,6 +1365,39 @@ class MainScreen(QMainWindow):
             self.left_is_playing = not is_playing
         else:
             self.right_is_playing = not is_playing
+
+    def soft_stop_video(self, side):
+        if side == 'left':
+            if hasattr(self, 'left_video_timer') and self.left_video_timer:
+                self.left_video_timer.stop()
+            if hasattr(self, 'left_is_playing'):
+                self.left_is_playing = False
+        elif side == 'right':
+            if hasattr(self, 'right_video_timer') and self.right_video_timer:
+                self.right_video_timer.stop()
+            if hasattr(self, 'right_is_playing'):
+                self.right_is_playing = False
+
+    def stop_video(self, side):
+        """
+        Останавливает воспроизведение видео и освобождает ресурсы.
+        """
+        if side == 'left':
+            if hasattr(self, 'left_video_timer') and self.left_video_timer:
+                self.left_video_timer.stop()
+            if hasattr(self, 'left_cap') and self.left_cap:
+                self.left_cap.release()
+                del self.left_cap
+            if hasattr(self, 'left_is_playing'):
+                self.left_is_playing = False
+        elif side == 'right':
+            if hasattr(self, 'right_video_timer') and self.right_video_timer:
+                self.right_video_timer.stop()
+            if hasattr(self, 'right_cap') and self.right_cap:
+                self.right_cap.release()
+                del self.right_cap
+            if hasattr(self, 'right_is_playing'):
+                self.right_is_playing = False
 
     def view_content_video(self, side):
         """
@@ -1942,6 +1981,9 @@ class MainScreen(QMainWindow):
 
 
     def processing(self):
+        # останавливаем видео
+        self.stop_video('left')
+        self.stop_video('right')
         # удаляем путь к размеченному исходному, если он есть
         self.detected_path = None
         self.detected_processed_path = None
@@ -1949,7 +1991,7 @@ class MainScreen(QMainWindow):
         self.download_detect_button.setEnabled(False)
         # очищаем левую сторону, но сохраняем file_path
         self.delete_files_widgets('left')
-        # загружаем исходное изображение снова
+        # загружаем исходный файл снова
         self.update_display(file_path=self.file_path, close=True, side='left')
 
         # очищаем правую сторону
@@ -2038,6 +2080,10 @@ class MainScreen(QMainWindow):
     # =========================================================================
 
     def detect_objects(self):
+        # останавливаем видео с обеих сторон
+        self.stop_video('left')
+        self.stop_video('right')
+
         # удаляем виджеты из области отображения файлов
         if hasattr(self, 'file_layout'):
             self.delete_files_widgets('left')
