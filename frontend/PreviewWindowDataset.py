@@ -1,26 +1,14 @@
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QTextEdit,
-    QVBoxLayout, QHBoxLayout, QLabel, QAction,
-    QDesktopWidget, QFrame, QLineEdit, 
-    QComboBox, QTableWidget, QTableWidgetItem, 
-    QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
-    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget,
-    QMessageBox, QStyle, QScrollArea, QToolButton
+    QMainWindow, QWidget,
+    QVBoxLayout, QHBoxLayout, QLabel,
+    QSizePolicy, QStyle, QScrollArea, QToolButton
 )
-from PyQt5.QtGui import (
-    QPalette, QColor, QFont, QIntValidator, 
-    QDoubleValidator, QRegExpValidator, QRegularExpressionValidator,
-    QPixmap, QImage, QIcon, QTransform, QPainter
-)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRegExp, QRegularExpression, QSize, QRectF, QUrl
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 
 from frontend.QFlowLayout import QFlowLayout
 
 import os
-import cv2
-from pathlib import Path
-from functools import partial
-import shutil
 import glob
 
 class PreviewWindowDataset(QMainWindow):
@@ -33,12 +21,14 @@ class PreviewWindowDataset(QMainWindow):
         self.init_ui()
         
     def keyPressEvent(self, event):
-        """Обработка нажатий клавиш для листания изображений"""
+        """
+        Обработка нажатий клавиш для пролистывания изображений.
+        """
         if self.fullscreen_viewer and self.fullscreen_viewer.isVisible():
-            # Если открыто полноэкранное окно, передаем управление ему
+            # если открыто полноэкранное окно, передаем управление ему
             self.fullscreen_viewer.keyPressEvent(event)
         else:
-            # Листание миниатюр (если нужно)
+            # листание миниатюр
             super().keyPressEvent(event)
     
     def get_image_files(self):
@@ -52,45 +42,50 @@ class PreviewWindowDataset(QMainWindow):
         return sorted(image_files)
     
     def init_ui(self):
-        """Инициализация интерфейса"""
+        """
+        Инициализация интерфейса.
+        """
         self.setWindowTitle("Просмотр датасета")
         self.resize(800, 650)
         
-        # Главный виджет и layout
+        # главный виджет и layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Виджет для миниатюр
+        # виджет для миниатюр
         self.thumbnails_widget = QWidget()
         self.thumbnails_layout = QFlowLayout()
         self.thumbnails_widget.setLayout(self.thumbnails_layout)
         
-        # Scroll area для миниатюр
+        # scroll area для миниатюр
         scroll = QScrollArea()
         scroll.setWidget(self.thumbnails_widget)
         scroll.setWidgetResizable(True)
-        
         main_layout.addWidget(scroll)
         
-        # Заполняем миниатюры
+        # загружаем миниатюры
         self.load_thumbnails()
         
     def load_thumbnails(self):
-        """Загружает миниатюры изображений"""
-        # Очищаем предыдущие миниатюры
+        """
+        Загружает миниатюры изображений.
+        """
+        # очищаем предыдущие миниатюры
         for i in reversed(range(self.thumbnails_layout.count())): 
             self.thumbnails_layout.itemAt(i).widget().setParent(None)
         
-        # Загружаем новые миниатюры
+        # загружаем новые миниатюры
         for i, image_path in enumerate(self.image_files):
             thumbnail = ThumbnailWidget(image_path)
             thumbnail.doubleClicked.connect(lambda idx=i: self.show_full_image(idx))
             self.thumbnails_layout.addWidget(thumbnail)
     
     def show_full_image(self, index):
-        """Показывает изображение в полном размере"""
+        """
+        Показывает изображение в полном размере.
+        """
         self.current_image_index = index
         self.image_viewer = ImageViewerWindow(self.image_files, self.current_image_index)
         self.image_viewer.show()
@@ -109,7 +104,9 @@ class ThumbnailWidget(QLabel):
         self.load_image()
         
     def load_image(self):
-        """Загружает изображение для миниатюры"""
+        """
+        Загружает изображение для миниатюры.
+        """
         pixmap = QPixmap(self.image_path)
         if not pixmap.isNull():
             self.setPixmap(pixmap.scaled(
@@ -119,7 +116,9 @@ class ThumbnailWidget(QLabel):
             ))
     
     def mouseDoubleClickEvent(self, event):
-        """Обработчик двойного клика"""
+        """
+        Обработчик двойного клика.
+        """
         self.doubleClicked.emit()
         super().mouseDoubleClickEvent(event)
 
@@ -172,7 +171,7 @@ class ImageViewerWindow(QMainWindow):
         self.next_button.clicked.connect(self.show_next_image)
         main_layout.addWidget(self.next_button, alignment=Qt.AlignVCenter)
         
-        # стилизация
+        # стили для стрелок
         self.setStyleSheet("""
             QToolButton {
                 border: none;

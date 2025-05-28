@@ -1,21 +1,16 @@
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QTextEdit,
-    QVBoxLayout, QHBoxLayout, QLabel, QAction,
-    QDesktopWidget, QFrame, QLineEdit, 
+    QMainWindow, QWidget,
+    QVBoxLayout, QHBoxLayout, QLabel,
+    QDesktopWidget, QFrame,
     QComboBox, QTableWidget, QTableWidgetItem, 
-    QSizePolicy, QHeaderView, QPushButton, QStyledItemDelegate, 
-    QFileDialog, QGraphicsView, QGraphicsScene, QDialog, QApplication, QGraphicsProxyWidget,
-    QMessageBox, QStyle
+    QSizePolicy, QHeaderView, QPushButton, 
+    QFileDialog, QDialog,
+    QMessageBox
 )
 from PyQt5.QtGui import (
-    QPalette, QColor, QFont, QIntValidator, 
-    QDoubleValidator, QRegExpValidator, QRegularExpressionValidator,
-    QPixmap, QImage, QIcon, QTransform, QPainter, QMovie
+    QFont, QPixmap, QImage, QMovie
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRegExp, QRegularExpression, QSize, QRectF, QUrl, QEvent
-
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize, QEvent
 
 import os
 import cv2

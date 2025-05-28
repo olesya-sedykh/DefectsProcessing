@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QPushButton, 
                             QSizePolicy, QDesktopWidget)
-from PyQt5.QtGui import QImage, QPixmap, QCursor
+from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt, QTimer, QSize
 import cv2
 import os
@@ -9,7 +9,6 @@ class PreviewWindowVideo(QWidget):
     def __init__(self, video_path):
         super().__init__()
         self.setWindowTitle("Просмотр видео")
-        # self.setGeometry(800, 600)
         self.resize(800, 600)
         self.video_path = video_path
         self.cap = None
