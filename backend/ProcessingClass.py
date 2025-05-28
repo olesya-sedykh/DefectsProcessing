@@ -44,7 +44,7 @@ class ProcessingClass:
                             'alpha': {
                                 'name': 'Степень резкости',
                                 'value': 1.5,
-                                'bounds': (0.01, 100.0),
+                                'bounds': (1.01, 100.0),
                                 'type': 'float',
                             }
                         }
@@ -122,7 +122,7 @@ class ProcessingClass:
                             'alpha': {
                                 'name': 'Степень резкости',
                                 'value': 1.5,
-                                'bounds': (0.01, 100.0),
+                                'bounds': (1.01, 100.0),
                                 'type': 'float',
                             }
                         }
@@ -222,13 +222,15 @@ class ProcessingClass:
                                 'name': 'Порог по яркости',
                                 'value': 160,
                                 'bounds': (0, 255),
-                                'type': 'int'
+                                'type': 'int',
+                                'no_even': False
                             },
                             'inpaint_radius': {
                                 'name': 'Радиус восстановления',
                                 'value': 3,
-                                'bounds': (1, 100),
-                                'type': 'int'
+                                'bounds': (1, 50),
+                                'type': 'int',
+                                'no_even': False
                             },
                             'flags': {
                                 'name': 'Метод восстановления',
@@ -244,7 +246,8 @@ class ProcessingClass:
                                 'name': 'Порог по градиенту',
                                 'value': 100,
                                 'bounds': (0, 255),
-                                'type': 'int'
+                                'type': 'int',
+                                'no_even': False
                             }
                         }
                     },
@@ -276,20 +279,23 @@ class ProcessingClass:
                             'block_size': {
                                 'name': 'Размер блоков',
                                 'value': 7,
-                                'bounds': (1, 100),
-                                'type': 'int'
+                                'bounds': (3, 99),
+                                'type': 'int',
+                                'no_even': True
                             },
                             'C': {
                                 'name': 'Вычитаемая константа',
                                 'value': 5,
                                 'bounds': (1, 10),
-                                'type': 'int'
+                                'type': 'int',
+                                'no_even': False
                             },
                             'inpaint_radius': {
                                 'name': 'Радиус восстановления',
                                 'value': 3,
-                                'bounds': (1, 100),
-                                'type': 'int'
+                                'bounds': (1, 50),
+                                'type': 'int',
+                                'no_even': False
                             },
                             'flags': {
                                 'name': 'Метод восстановления',
@@ -305,7 +311,8 @@ class ProcessingClass:
                                 'name': 'Порог по градиенту',
                                 'value': 100,
                                 'bounds': (0, 255),
-                                'type': 'int'
+                                'type': 'int',
+                                'no_even': False
                             }
                         }
                     }
@@ -394,6 +401,7 @@ class ProcessingClass:
                                 'value': 3,
                                 'bounds': (1, 4),
                                 'type': 'int',
+                                'no_even': False
                             },
                             'wavelet_estimate_noise': {
                                 'name': 'Оценка шума',
@@ -418,18 +426,21 @@ class ProcessingClass:
                                 'value': 10,
                                 'bounds': (1, 30),
                                 'type': 'int',
+                                'no_even': False
                             },
                             'template_window_size': {
                                 'name': 'Размер патча',
                                 'value': 7,
                                 'bounds': (1, 40),
                                 'type': 'int',
+                                'no_even': False
                             },
                             'search_window_size': {
                                 'name': 'Размер окна поиска',
                                 'value': 21,
                                 'bounds': (1, 60),
                                 'type': 'int',
+                                'no_even': False
                             }
                         }
                     },

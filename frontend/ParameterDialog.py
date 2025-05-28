@@ -137,6 +137,15 @@ class ParameterDialog(QDialog):
         # фиксируем размер окна
         self.resize(self.sizeHint())
     
+    def validate_odd(self, widget, value):
+        """
+        Проверяет, что значение нечетное, и корректирует если нужно.
+        """
+        if value % 2 == 0:
+            # если значение четное, оно будет скорректировано до ближайшего нечетного
+            corrected = value + 1 if value + 1 <= widget.maximum() else value - 1
+            widget.setValue(corrected)
+    
     def create_parameter_row(self, name):
         """
         Создание строки параметра.
@@ -169,6 +178,12 @@ class ParameterDialog(QDialog):
             min_val, max_val = config['bounds']            
             widget.setRange(min_val, max_val)
             widget.setValue(int(value))
+
+            if config.get('no_even', True):
+                # шаг изменения 2
+                widget.setSingleStep(2)
+                # вызываем функцию валидации и корректировки
+                self.validate_odd(widget, value)
         
         elif widget_type == 'float':
             widget = QDoubleSpinBox()
