@@ -35,9 +35,13 @@ from frontend.ParameterDialog import ParameterDialog
 from backend.ProcessingClass import ProcessingClass
 
 PROJECT_ROOT = Path(__file__).parent.parent
-MODEL_PATH = PROJECT_ROOT / 'mobile_net_model.h5'
-YOLO_RAW_PATH = PROJECT_ROOT / 'yolo_raw.pt'
-YOLO_BEST_PATH = PROJECT_ROOT / 'yolo_best.pt'
+# MODEL_PATH = PROJECT_ROOT / 'mobile_net_model.h5'
+# YOLO_RAW_PATH = PROJECT_ROOT / 'yolo_raw.pt'
+# YOLO_BEST_PATH = PROJECT_ROOT / 'yolo_best.pt'
+MODELS_PATH = PROJECT_ROOT / 'models'
+MOBILENET_PATH = MODELS_PATH / 'mobile_net_model.h5'
+YOLO_RAW_PATH = MODELS_PATH / 'yolo_raw.pt'
+YOLO_BEST_PATH = MODELS_PATH / 'yolo_best.pt'
 OUTPUT_PATH = PROJECT_ROOT / 'temp'
 ICONS_PATH = PROJECT_ROOT / 'icons'
 
@@ -245,7 +249,7 @@ class MainScreen(QMainWindow):
 
         # создаем экземпляр класса-обработчика
         self.processor = ProcessingClass(
-            model_path=MODEL_PATH,
+            model_path=MOBILENET_PATH,
             yolo_raw_path=YOLO_RAW_PATH,
             yolo_best_path=YOLO_BEST_PATH,
             output_path=OUTPUT_PATH
