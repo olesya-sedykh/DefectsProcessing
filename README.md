@@ -8,3 +8,5 @@
 6. Активировать виртуальное окружение: venv/Scripts/activate
 7. Установить зависимости: pip install -r requirements.txt
 8. Запустить проект: python main.py
+
+Чтобы собрать экзешник нужно выполнить команду: pyinstaller DefectsProcessor.spec --clean
