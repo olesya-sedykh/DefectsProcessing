@@ -259,6 +259,7 @@ class MainScreen(QMainWindow):
         self.manual_methods = self.processor.get_manual_methods()
         self.allowed_params_values = self.processor.get_allowed_params()
         self.params_mapping = self.processor.get_params_mapping()
+        self.dependencies = self.processor.get_dependencies()
 
         # для управления обработкой
         # self.right_movie = None
@@ -1771,6 +1772,7 @@ class MainScreen(QMainWindow):
             params_config, 
             self.params_mapping, 
             self.allowed_params_values, 
+            self.dependencies,
             editable
         )
         if dialog.exec_() == QDialog.Accepted and editable:

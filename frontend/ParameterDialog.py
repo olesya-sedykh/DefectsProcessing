@@ -6,12 +6,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QTimer, Qt
 
 class ParameterDialog(QDialog):
-    def __init__(self, method_name, parameters_config, params_mapping, allowed_params_values, editable=False, parent=None):
+    def __init__(self, method_name, parameters_config, params_mapping, allowed_params_values, dependencies, editable=False, parent=None):
         super().__init__(parent)
         self.method_name = method_name
         self.params_mapping = params_mapping
         self.parameters_config = parameters_config
         self.allowed_params_values = allowed_params_values
+        self.dependencies = dependencies
         self.editable = editable
 
         self.setWindowTitle(f"Параметры: {method_name}")
@@ -35,28 +36,28 @@ class ParameterDialog(QDialog):
         # начальная инициализация
         self.init_ui()
         # зависимости параметров (когда наличие одного зависит от другого)
-        self.dependencies = {
-            'sigma': {
-                'source': 'estimate_noise',
-                'condition': ['gaussian'],
-                'widget_type': 'float'
-            },
-            'wavelet_sigma': {
-                'source': 'wavelet_estimate_noise',
-                'condition': ['gaussian'],
-                'widget_type': 'float'
-            },
-            'gradient_method': {
-                'source': 'mask_mode',
-                'condition': ['gradient', 'combine'],
-                'widget_type': 'combo'
-            },
-            'gradient_threshold': {
-                'source': 'mask_mode',
-                'condition': ['gradient', 'combine'],
-                'widget_type': 'int'
-            }
-        }
+        # self.dependencies = {
+        #     'sigma': {
+        #         'source': 'estimate_noise',
+        #         'condition': ['gaussian'],
+        #         'widget_type': 'float'
+        #     },
+        #     'wavelet_sigma': {
+        #         'source': 'wavelet_estimate_noise',
+        #         'condition': ['gaussian'],
+        #         'widget_type': 'float'
+        #     },
+        #     'gradient_method': {
+        #         'source': 'mask_mode',
+        #         'condition': ['gradient', 'combine'],
+        #         'widget_type': 'combo'
+        #     },
+        #     'gradient_threshold': {
+        #         'source': 'mask_mode',
+        #         'condition': ['gradient', 'combine'],
+        #         'widget_type': 'int'
+        #     }
+        # }
         
     def resizeEvent(self, event):
         if not self._user_can_resize:

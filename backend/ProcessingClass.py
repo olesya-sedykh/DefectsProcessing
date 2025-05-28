@@ -448,6 +448,7 @@ class ProcessingClass:
             }
         }
 
+        # список разрешенных параметров для параметров на выбор
         self.__allowed_params_values = {
             'color_space_hist': ['hsv', 'yuv'],
             'color_space': ['hsv', 'rgb', 'yuv'],
@@ -462,6 +463,7 @@ class ProcessingClass:
             'wavelet_estimate_noise': ['function', 'gaussian', 'wavelet'],
         }
 
+        # перевод параметров на русский
         self.__params_mapping = {
             'hsv': 'пространство HSV',
             'yuv': 'пространство YUV',
@@ -488,6 +490,30 @@ class ProcessingClass:
             'soft': 'плавный'
         }
 
+        # зависимости параметров (когда наличие одного зависит от другого)
+        self.__dependencies = {
+            'sigma': {
+                'source': 'estimate_noise',
+                'condition': ['gaussian'],
+                'widget_type': 'float'
+            },
+            'wavelet_sigma': {
+                'source': 'wavelet_estimate_noise',
+                'condition': ['gaussian'],
+                'widget_type': 'float'
+            },
+            'gradient_method': {
+                'source': 'mask_mode',
+                'condition': ['gradient', 'combine'],
+                'widget_type': 'combo'
+            },
+            'gradient_threshold': {
+                'source': 'mask_mode',
+                'condition': ['gradient', 'combine'],
+                'widget_type': 'int'
+            }
+        }
+
     def set_input_path(self, input_path):
         self.input_path = input_path
 
@@ -506,6 +532,9 @@ class ProcessingClass:
     
     def get_params_mapping(self):
         return self.__params_mapping
+    
+    def get_dependencies(self):
+        return self.__dependencies
     
     def get_auto_methods(self):
         return self.__auto_methods
