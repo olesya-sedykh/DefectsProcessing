@@ -2053,6 +2053,9 @@ class MainScreen(QMainWindow):
             self.defects_processing_type.setEnabled(True)
             self.set_table_elements_enabled(True)
 
+            for defect_key in self.auto_methods.keys():
+                self.update_gear_buttons(defect_key)
+
     def on_processing_error(self):
         """
         Вызывается, когда в процессе обработки возникает ошибка.

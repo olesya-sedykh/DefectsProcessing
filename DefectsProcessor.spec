@@ -58,11 +58,7 @@ a = Analysis(
         'frontend.PreviewWindowVideo',
         'frontend.PreviewWindowDataset',
         'frontend.QFlowLayout',
-        'frontend.ParameterDialog',
-        
-        'pathlib',
-        'functools',
-        'glob'
+        'frontend.ParameterDialog'
     ]
     hookspath=[],
     hooksconfig={},
